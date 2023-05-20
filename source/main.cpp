@@ -65,8 +65,8 @@ auto main() -> int
       }
     }
     partitionHET.processRequest(currentInput);
-    partition.processRequest(currentInput);
-    if(i > 0 && i%100000 == 0){
+    // partition.processRequest(currentInput);
+    if(i > 0 && i%1000000 == 0){
       auto now = std::chrono::system_clock::now();
       std::chrono::duration<double> elapsed_time = now - t;
       std::cout << i << ": " << elapsed_time.count() << " -------------------------------------------"<<std::endl;

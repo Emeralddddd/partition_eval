@@ -51,15 +51,12 @@ void StaticPartition::load_partition(std::string path, double hot_rate){
     access_cnt_.resize(n_parts_,0);
     max_id_ = partition_.size()-1;
     n_embeds_ = max_id_;
-    hot_size_ = n_embeds_ * hot_rate;
     for(int p : partition_){
         embed_cnt_[p]++;
     }
-    local_hot_.resize(n_parts_);
-    for(int i = 0; i < n_parts_; i++){
-        vector<int> h = partition[std::to_string(i)].as_vec<int>();
-        local_hot_[i] = unordered_set<int>(h.begin(), h.begin() + hot_size_);
-    }
+    vector<vector<int>> priorList(n_parts_);
+    for(int i = 0; i < n_parts_; i++) priorList[i] = partition[std::to_string(i)].as_vec<int>();
+    cache_ = new StaticCache(priorList, hot_rate);
 }
 
 void StaticPartition::load_query_partition(string path){
@@ -72,23 +69,24 @@ void StaticPartition::processRequest(vector<int> &data){
     int cost = 0;
     vector<int> partCnt(n_parts_, 0);
     vector<int> parts = getPartitions(data);
+    vector<bool> dataValid(n,false);
     vector<int> remoteAccess(n_parts_,0);
     vector<int> cacheHitCnt(n_parts_,0);
     vector<int> localAccessCnt(n_parts_,0);
     int targetPart;
-        vector<bool> dataValid(n,false);
     for(int i = 0; i < n; i++){
         if(data[i] <= max_id_ && parts[i] != -1){
             dataValid[i] = true;
             queryCnt_++;
         }
-    } 
+    }
     for(int j = 0; j < n_parts_; j++){
         vector<bool> isAccessed(4,false);
+        vector<int> cacheResults = cache_->query(data, j);
         for(int i = 0; i < n ; i++){
             if(!dataValid[i]) continue;
             if(parts[i] != j){ 
-                if(!local_hot_[j].count(data[i])){
+                if(cacheResults[i] == 0){
                     partCnt[j]++;
                     if(!isAccessed[parts[i]]){
                         isAccessed[parts[i]] = true;
@@ -98,7 +96,8 @@ void StaticPartition::processRequest(vector<int> &data){
             }else localAccessCnt[j]++; 
         }
     }
-    targetPart = min_element(remoteAccess.begin(),remoteAccess.end()) - remoteAccess.begin();
+    // targetPart = min_element(remoteAccess.begin(),remoteAccess.end()) - remoteAccess.begin();
+    targetPart = min_element(partCnt.begin(),partCnt.end()) - partCnt.begin();
     // todo 选择targetPart的方式
     // vector<int> partCnt(n_parts, 0);
     access_cnt_[targetPart]++;
@@ -312,4 +311,22 @@ unordered_set<int> MisraGries::getFrequentItems() {
         }
     }
     return std::move(ret);
+}
+
+StaticCache::StaticCache(const vector<vector<int>> &priorList, double hotRate){
+    n_parts_ = priorList.size();
+    size_ = priorList[0].size() * hotRate;
+    data_.resize(n_parts_);
+    for(int i = 0; i < n_parts_; i++){
+        data_[i] = unordered_set<int>(priorList[i].begin(),priorList[i].begin() + size_);
+    }
+}
+
+vector<int> StaticCache::query(const vector<int> &input, int part){
+    int n = input.size();
+    vector<int> res(n,0);
+    for(int i = 0; i < n; i++){
+        if(data_[part].count(input[part])) res[i] = 1;
+    }
+    return res;
 }

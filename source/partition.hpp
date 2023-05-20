@@ -8,6 +8,23 @@
 #include <unordered_map>
 #include <unordered_set>
 
+class BaseCache{
+public:
+    virtual std::vector<int> query(const std::vector<int> &data, int part) = 0;
+    virtual void update(const std::vector<int> &data, int part) = 0;
+};
+
+class StaticCache : public BaseCache{
+public:
+    StaticCache(const std::vector<std::vector<int>> &priorList, double hotRate);
+    std::vector<int> query(const std::vector<int> &data, int part);
+    void update(const std::vector<int> &data, int part){}
+private:
+    int n_parts_;
+    int size_;
+    std::vector<std::unordered_set<int>> data_;
+};
+
 class MisraGries {
 private:
     std::unordered_map<int, int> counter_;
@@ -30,6 +47,9 @@ public:
 class BasePartition{
 public:
     BasePartition(int n_parts) : n_parts_(n_parts),embed_cnt_(n_parts,0),access_cnt_(n_parts,0) {}
+    ~BasePartition(){
+        if(cache_) delete cache_;
+    }
     std::vector<int> getPartitions(std::vector<int> &data);
     int getPartition(int u);
     int getPartitionCnt(int part);
@@ -64,6 +84,7 @@ protected:
     int localCnt_ = 0;
     int changeEmbed_ = 0;
     int remoteAccessCnt_ = 0;
+    BaseCache *cache_ = nullptr;
 };
 
 class StaticPartition : public BasePartition{
@@ -73,10 +94,8 @@ public:
     void load_query_partition(std::string path);
     virtual void processRequest(std::vector<int> &data) override;
 private:
-    int hot_size_;
     int query_counter_ = 0;
     std::vector<int> query_partition_;
-    std::vector<std::unordered_set<int>> local_hot_;
 };
 
 class ScorePartition : public BasePartition{
