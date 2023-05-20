@@ -45,9 +45,9 @@ auto main() -> int
   // vector<vector<int>> day3(std::make_move_iterator(data.begin() + records_per_day * 3), std::make_move_iterator(data.end()));
   std::cout << "data loaded" << std::endl;
   ScorePartition partition(4);
-  partition.load_partition("/data/1/zhen/dac/partition/all.npz");
+  partition.load_partition("/data/1/zhen/dac/partition/10m.npz");
   // partition.load_partition("/data/1/zhen/criteo-tb/partition/day_0_20m.npz", "scores.csv",0.00);
-  StaticPartition partitionHET(4,"/data/1/zhen/dac/partition/all.npz",0.00);
+  StaticPartition partitionHET(4,"/data/1/zhen/dac/partition/10m.npz",0.001);
   // partition.load_partition("/data/1/zhen/criteo-tb/partition/day_0_50m.npz",data,0.001);
   // partitionHET.load_query_partition("/data/1/zhen/dac/partition.npz");
   std::cout << "partition test start" << std::endl;
@@ -71,10 +71,10 @@ auto main() -> int
       std::chrono::duration<double> elapsed_time = now - t;
       std::cout << i << ": " << elapsed_time.count() << " -------------------------------------------"<<std::endl;
       std::cout << "Static Partition :" << std::endl;
-      std::cout << "local access rate: " << partitionHET.getLocalRate()  << " cache hit rate: " \
+      std::cout << "node access: " << partitionHET.getRemoteAccess() << " local access rate: " << partitionHET.getLocalRate()  << " cache hit rate: " \
       << partitionHET.getCacheHitRate() << " avg cost: " << partitionHET.getAvgCost() << std::endl;
       std::cout << "Dynamic Partition :" << std::endl;
-      std::cout << "local access rate: " << partition.getLocalRate()  << " cache hit rate: " \
+      std::cout << "node access: " << partition.getRemoteAccess() << " local access rate: " << partition.getLocalRate()  << " cache hit rate: " \
       << partition.getCacheHitRate() << " avg cost: " << partition.getAvgCost() << " embedding change: " << partition.getChangedEmbed() << std::endl;
       outfile << i;
       outfile << "," << partitionHET.getAvgCost();

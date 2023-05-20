@@ -41,7 +41,8 @@ public:
     double getAvgCost(){return queryCnt_>0?(double)allCost_ / queryCnt_:0;}
     double getCacheHitRate(){return queryCnt_>0?(double)cacheHit_/queryCnt_:0;}
     double getLocalRate(){return queryCnt_>0?(double)localCnt_/queryCnt_:0;}
-    double getRemoteAccess(){return queryCnt_>0?(double)remoteAccessCnt_/queryCnt_:0;}
+    int getChangedEmbed(){return changeEmbed_;}
+    int getRemoteAccess(){return remoteAccessCnt_;}
     void clear(){
         allCost_ = 0;
         queryCnt_ = 0;

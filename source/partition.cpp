@@ -69,36 +69,43 @@ void StaticPartition::load_query_partition(string path){
 
 void StaticPartition::processRequest(vector<int> &data){
     int n = data.size();
-    int n_parts = getPartNums();
     int cost = 0;
-    vector<int> partCnt(n_parts, 0);
+    vector<int> partCnt(n_parts_, 0);
+    vector<int> parts = getPartitions(data);
+    vector<int> remoteAccess(n_parts_,0);
+    vector<int> cacheHitCnt(n_parts_,0);
+    vector<int> localAccessCnt(n_parts_,0);
     int targetPart;
-    // if(query_counter_ < query_partition_.size())
-    if(query_counter_ < 0)
-    {
-        targetPart = query_partition_[query_counter_++];
-    } 
-    else{
-        for(int i = 0; i < n; i++){
-            if(data[i] > max_id_ || partition_[data[i]] == -1) continue;
-            for (int j = 0; j < n_parts_;j++){
-                if(partition_[data[i]] != j && !local_hot_[j].count(data[i])) partCnt[j]++; 
-            } 
-        }
-        targetPart = min_element(partCnt.begin(),partCnt.end()) - partCnt.begin();
-        // todo 选择targetPart的方式
-    }
-    // vector<int> partCnt(n_parts, 0);
+        vector<bool> dataValid(n,false);
     for(int i = 0; i < n; i++){
-        if(data[i] > max_id_ || partition_[data[i]] == -1) continue;
-        if(partition_[data[i]] != targetPart){
-            localCnt_++;
-            if(!local_hot_[targetPart].count(data[i])) allCost_++;
-            else cacheHit_++;
+        if(data[i] <= max_id_ && parts[i] != -1){
+            dataValid[i] = true;
+            queryCnt_++;
         }
-        queryCnt_ ++;
+    } 
+    for(int j = 0; j < n_parts_; j++){
+        vector<bool> isAccessed(4,false);
+        for(int i = 0; i < n ; i++){
+            if(!dataValid[i]) continue;
+            if(parts[i] != j){ 
+                if(!local_hot_[j].count(data[i])){
+                    partCnt[j]++;
+                    if(!isAccessed[parts[i]]){
+                        isAccessed[parts[i]] = true;
+                        remoteAccess[j]++;
+                    }
+                }else cacheHitCnt[j]++;
+            }else localAccessCnt[j]++; 
+        }
     }
+    targetPart = min_element(remoteAccess.begin(),remoteAccess.end()) - remoteAccess.begin();
+    // todo 选择targetPart的方式
+    // vector<int> partCnt(n_parts, 0);
     access_cnt_[targetPart]++;
+    allCost_ += partCnt[targetPart];
+    cacheHit_ += cacheHitCnt[targetPart];
+    localCnt_ += localAccessCnt[targetPart];
+    remoteAccessCnt_ += remoteAccess[targetPart];
 }
 
 void ScorePartition::load_partition_base(string partition_path){
@@ -232,7 +239,14 @@ void ScorePartition::processRequest(vector<int> &data){
     vector<int> partCnt(n_parts, 0);
     vector<int> cacheHitCnt(n_parts_,0);
     vector<int> localAccessCnt(n_parts_,0);
-    vector<bool> remoteAccess(n_parts,false);
+    vector<int> remoteAccess(n_parts,0);
+    vector<bool> dataValid(n,false);
+    for(int i = 0; i < n; i++){
+        if(data[i] <= max_id_ && parts[i] != -1){
+            dataValid[i] = true;
+            queryCnt_++;
+        }
+    } 
     // int global_hot_cnt = 0;
     // for(int i = 0; i < n; i++){
     //     mg_.add(data[i]);
@@ -242,19 +256,23 @@ void ScorePartition::processRequest(vector<int> &data){
     //         queryCnt_ ++;
     //     } 
     // }
-    for(int i = 0; i < n; i++){
-        if(data[i] > max_id_ || parts[i] == -1) continue;
-        for (int j = 0; j < n_parts_;j++){
-            // if(parts[i] != j && !local_hot_[j].isFrequent(data[i])) partCnt[j]++;
-            if(parts[i] != j){
-                localAccessCnt[j]++;  
-                if(!mg_.isFrequent(data[i])) partCnt[j]++;
-                else cacheHitCnt[j]++;
-            }
-        } 
-        queryCnt_++;
+    for(int j = 0; j < n_parts; j++){
+        vector<bool> isAccessed(4,false);
+        for(int i = 0; i < n ; i++){
+            if(!dataValid[i]) continue;
+            if(parts[i] != j){ 
+                if(!mg_.isFrequent(data[i])){
+                    partCnt[j]++;
+                    if(!isAccessed[parts[i]]){
+                        isAccessed[parts[i]] = true;
+                        remoteAccess[j]++;
+                    }
+                }else cacheHitCnt[j]++;
+            }else localAccessCnt[j]++; 
+        }
     }
-    int targetPart = min_element(partCnt.begin(), partCnt.end()) - partCnt.begin();
+    // int targetPart = min_element(partCnt.begin(), partCnt.end()) - partCnt.begin();
+    int targetPart = min_element(remoteAccess.begin(), remoteAccess.end()) - remoteAccess.begin();
     // for(const int x : data) local_hot_[targetPart].add(x);
     for(const int x : data) mg_.add(x);
     // int targetPart = queryCnt_ % n_parts_;
@@ -262,6 +280,7 @@ void ScorePartition::processRequest(vector<int> &data){
     allCost_ += partCnt[targetPart];
     cacheHit_ += cacheHitCnt[targetPart];
     localCnt_ += localAccessCnt[targetPart];
+    remoteAccessCnt_ += remoteAccess[targetPart];
     // allCost_ += n - partCnt[targetPart] - global_hot_cnt;
     updatePartition(data);
 }
