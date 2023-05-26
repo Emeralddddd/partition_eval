@@ -8,23 +8,6 @@
 #include <unordered_map>
 #include <unordered_set>
 
-class BaseCache{
-public:
-    virtual std::vector<int> query(const std::vector<int> &data, int part) = 0;
-    virtual void update(const std::vector<int> &data, int part) = 0;
-};
-
-class StaticCache : public BaseCache{
-public:
-    StaticCache(const std::vector<std::vector<int>> &priorList, double hotRate);
-    std::vector<int> query(const std::vector<int> &data, int part);
-    void update(const std::vector<int> &data, int part){}
-private:
-    int n_parts_;
-    int size_;
-    std::vector<std::unordered_set<int>> data_;
-};
-
 class MisraGries {
 private:
     std::unordered_map<int, int> counter_;
@@ -42,8 +25,46 @@ public:
     void clear(){counter_.clear();}
 
     int size(){return counter_.size();}
+
+    void resize(int k){k_ = k;}
 };
 
+class BaseCache{
+public:
+    virtual std::vector<int> query(const std::vector<int> &data, int part) = 0;
+    virtual void update(const std::vector<int> &data, int part) = 0;
+};
+
+class StaticCache : public BaseCache{
+public:
+    StaticCache(const std::vector<std::vector<int>> &priorList, double hotRate);
+    std::vector<int> query(const std::vector<int> &data, int part);
+    void update(const std::vector<int> &data, int part){}
+private:
+    int n_parts_;
+    int size_;
+    std::vector<std::unordered_set<int>> data_;
+};
+
+class GlobalCache : public BaseCache{
+public:
+    GlobalCache(int n_parts, int hot_size):n_parts_(n_parts),hot_size_(hot_size),mg_(hot_size){}
+    std::vector<int> query(const std::vector<int> &data, int part){
+        int n = data.size();
+        std::vector<int> res(n,0);
+        for(int i = 0; i < n; i++){
+            if(mg_.isFrequent(data[i])) res[i] = 1;
+        }
+        return res;
+    }
+    void update(const std::vector<int> &data, int part){for (int x : data) mg_.add(x);}
+private:
+    int n_parts_;
+    double hot_rate_;
+    int hot_size_;
+    MisraGries mg_;
+    std::vector<std::unordered_set<int>> data_;
+};
 class BasePartition{
 public:
     BasePartition(int n_parts) : n_parts_(n_parts),embed_cnt_(n_parts,0),access_cnt_(n_parts,0) {}
@@ -100,18 +121,18 @@ private:
 
 class ScorePartition : public BasePartition{
 public:
-    ScorePartition(int n_parts) : BasePartition(n_parts),mg_(0),local_hot_(n_parts_,MisraGries(30000)){}
+    ScorePartition(int n_parts) : BasePartition(n_parts){
+        cache_ = new GlobalCache(n_parts,30000);
+    }
     void updatePartition(std::vector<int> &data);
     void expandEmbedRange(int n) override;
     virtual void processRequest(std::vector<int> &data) override;
-    int getGlobalHotSize(){return mg_.size();}
     void load_partition_base(std::string partition_path);
     void load_partition(std::string partition_path);
     void load_partition(std::string partition_path, std::vector<std::vector<int>> &data, double hot_rate);
     void load_partition(std::string partition_path, std::string scores_path, double hot_rate);
-    void updateGlobalHot(){global_hot_ = mg_.getFrequentItems();}
     void resetPartition(){
-        mg_.clear();
+        // todo clear cache
         int n = scores_[0].size();
         for(auto &s : scores_){
             std::fill(s.begin(), s.end(), 0);
@@ -122,7 +143,6 @@ private:
     double alpha_ = 1;
     double beta_ = 1;
     double aging_factor_ = 1.0;
-    MisraGries mg_;
     std::vector<std::vector<int>> scores_;
     std::unordered_set<int> global_hot_;
     std::vector<MisraGries> local_hot_;

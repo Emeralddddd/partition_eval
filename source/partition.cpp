@@ -57,6 +57,7 @@ void StaticPartition::load_partition(std::string path, double hot_rate){
     vector<vector<int>> priorList(n_parts_);
     for(int i = 0; i < n_parts_; i++) priorList[i] = partition[std::to_string(i)].as_vec<int>();
     cache_ = new StaticCache(priorList, hot_rate);
+    // cache_ = new GlobalCache(n_parts_,30000);
 }
 
 void StaticPartition::load_query_partition(string path){
@@ -105,6 +106,7 @@ void StaticPartition::processRequest(vector<int> &data){
     cacheHit_ += cacheHitCnt[targetPart];
     localCnt_ += localAccessCnt[targetPart];
     remoteAccessCnt_ += remoteAccess[targetPart];
+    cache_->update(data,0);
 }
 
 void ScorePartition::load_partition_base(string partition_path){
@@ -246,21 +248,13 @@ void ScorePartition::processRequest(vector<int> &data){
             queryCnt_++;
         }
     } 
-    // int global_hot_cnt = 0;
-    // for(int i = 0; i < n; i++){
-    //     mg_.add(data[i]);
-    //     if(parts[i] != -1){
-    //         if(mg_.isFrequent(data[i])) global_hot_cnt++;
-    //         else partCnt[parts[i]]++;
-    //         queryCnt_ ++;
-    //     } 
-    // }
     for(int j = 0; j < n_parts; j++){
         vector<bool> isAccessed(4,false);
+        vector<int> cacheResults = cache_->query(data,j);
         for(int i = 0; i < n ; i++){
             if(!dataValid[i]) continue;
             if(parts[i] != j){ 
-                if(!mg_.isFrequent(data[i])){
+                if(cacheResults[i] == 0){
                     partCnt[j]++;
                     if(!isAccessed[parts[i]]){
                         isAccessed[parts[i]] = true;
@@ -273,7 +267,6 @@ void ScorePartition::processRequest(vector<int> &data){
     // int targetPart = min_element(partCnt.begin(), partCnt.end()) - partCnt.begin();
     int targetPart = min_element(remoteAccess.begin(), remoteAccess.end()) - remoteAccess.begin();
     // for(const int x : data) local_hot_[targetPart].add(x);
-    for(const int x : data) mg_.add(x);
     // int targetPart = queryCnt_ % n_parts_;
     access_cnt_[targetPart]++;
     allCost_ += partCnt[targetPart];
@@ -281,6 +274,7 @@ void ScorePartition::processRequest(vector<int> &data){
     localCnt_ += localAccessCnt[targetPart];
     remoteAccessCnt_ += remoteAccess[targetPart];
     // allCost_ += n - partCnt[targetPart] - global_hot_cnt;
+    cache_ ->update(data,0);
     updatePartition(data);
 }
 
@@ -326,7 +320,7 @@ vector<int> StaticCache::query(const vector<int> &input, int part){
     int n = input.size();
     vector<int> res(n,0);
     for(int i = 0; i < n; i++){
-        if(data_[part].count(input[part])) res[i] = 1;
+        if(data_[part].count(input[i])) res[i] = 1;
     }
     return res;
 }
