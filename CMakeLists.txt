@@ -34,6 +34,8 @@ target_compile_features(eval_lib PUBLIC cxx_std_17)
 
 # ---- Declare executable ----
 
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 add_executable(eval_exe source/main.cpp)
 add_executable(eval::exe ALIAS eval_exe)
 
@@ -47,6 +49,9 @@ target_link_libraries(eval_exe PUBLIC OpenMP::OpenMP_CXX)
 if (OPENMP_FOUND)
     target_compile_options(eval_exe PUBLIC ${OpenMP_CXX_FLAGS})
 endif()
+
+add_subdirectory(source/query)
+
 # ---- Install rules ----
 
 if(NOT CMAKE_SKIP_INSTALL_RULES)
