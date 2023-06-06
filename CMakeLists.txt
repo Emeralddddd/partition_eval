@@ -51,6 +51,7 @@ if (OPENMP_FOUND)
 endif()
 
 add_subdirectory(source/query)
+add_subdirectory(source/merge)
 
 # ---- Install rules ----
 
