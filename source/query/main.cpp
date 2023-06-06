@@ -15,6 +15,17 @@ vector<int> load_partition(std::string path){
   return partition;
 }
 
+int load_data(std::string path, std::vector<std::vector<int>> &data){
+  cnpy::NpyArray ndata = cnpy::npy_load(path);
+  data.resize(ndata.shape[0], std::vector<int>(ndata.shape[1],-1));
+  for(int i = 0; i < ndata.shape[0]; i++){
+    for(int j = 0; j < ndata.shape[1]; j++){
+      data[i][j] = ndata.data<long long>()[j*ndata.shape[0] + i];
+    }
+  }
+  return 0;
+}
+
 auto main(int argc, char* argv[]) -> int
 {
     CLI::App app{"Redis Application"};
@@ -42,18 +53,28 @@ auto main(int argc, char* argv[]) -> int
         std::random_device rd;
         std::mt19937 gen(rd());
         std::uniform_int_distribution<> dis(INT32_MIN, INT32_MAX);
-        // vector<int> partition = load_partition("/data/1/zhen/criteo-tb/partition/window/day0_20m.npz");
-        // #pragma omp parallel for num_threads(4)
-        for(int i = 0; i < 10; i++){
+        vector<int> partition = load_partition("/data/1/zhen/criteo-tb/partition/window/day0_20m.npz");
+        for(int i = 0; i < partition.size(); i++){
             if(i % 1000000 == 0) std::cout << i << std::endl;
-            // if(partition[i] < 0) continue;
+            if(partition[i] < 0) continue;
             std::stringstream ss;
             for (int i = 0; i < 32; ++i) {
                 if (i != 0) ss << " ";
                 ss << dis(gen);
             }
-            std::cout << ss.str() << std::endl;
-            // redisCommand(rc_vec[partition[i]].get(), "SET %d %s", i, ss.str().c_str());
+            redisCommand(rc_vec[partition[i]].get(), "SET %d %s", i, ss.str().c_str());
+        }
+    }else if(exec_mode == "query"){
+        vector<vector<int>> data;
+        load_data("/data/1/zhen/criteo-tb/sparse_day_0.npy", data);
+        vector<int> partition = load_partition("/data/1/zhen/criteo-tb/partition/window/day0_20m.npz");
+        
+        for(int i = 20000000; i < 80000000; i++){
+            if(partition[i] != 1) continue;
+            for(int j = 0; j < data[i].size(); j++){
+                redisReply *reply = (redisReply *)redisCommand(rc_vec[partition[i]].get(), "GET %d", data[i][j]);
+                freeReplyObject(reply);
+            }
         }
     }
     return 0;
