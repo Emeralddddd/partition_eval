@@ -6,7 +6,6 @@
 #include <chrono>
 #include <fstream>
 
-#include "lib.hpp"
 #include "partition.hpp"
 #include "eval.hpp"
 #include "cnpy.h"
