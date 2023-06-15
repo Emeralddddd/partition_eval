@@ -39,26 +39,21 @@ auto main() -> int
   const int records_per_day = 20000000;
   std::vector<std::vector<int>> data;
   load_data("/data/1/zhen/criteo-tb/sparse_day_0.npy", data);
-  // load_data("/data/1/zhen/dac/sparse_feats.npy", data);
-  // vector<vector<int>> day0(data.begin(), data.begin() + records_per_day);
-  // vector<vector<int>> day012(std::make_move_iterator(data.begin()), std::make_move_iterator(data.begin() + records_per_day * 3));
-  // vector<vector<int>> day3(std::make_move_iterator(data.begin() + records_per_day * 3), std::make_move_iterator(data.end()));
   std::cout << "data loaded" << std::endl;
-  ScorePartition partition(4);
-  // partition.load_partition("/data/1/zhen/dac/partition/10m.npz");
-  // partition.load_partition("/data/1/zhen/criteo-tb/partition/day_0_20m.npz", "scores.csv",0.00);
   StaticPartition partitionHET(4,"/data/1/zhen/criteo-tb/partition/window/day0_195m.npz",0.001);
-  // partition.load_partition("/data/1/zhen/criteo-tb/partition/day_0_50m.npz",data,0.001);
-  // partitionHET.load_query_partition("/data/1/zhen/dac/partition.npz");
+  StaticPartition partitionMerge(4,"/data/1/zhen/criteo-tb/partition/window/day0_195m.npz",0.001);
+  Merger merger(4);
+  vector<double> cost;
+  vector<double> mergeCost;
   std::cout << "partition test start" << std::endl;
   auto start_time = std::chrono::system_clock::now();
   auto t = std::chrono::system_clock::now();
-  vector<double> cost;
   std::unordered_set<int> ban_points = {22,23,24,26,27,28,31,32,33,34,36,39,42,43,51,56};
-  // std::unordered_set<int> ban_points = {};
   for(int i = 20000001; i < 80000000; i++){
-    if(i % 6000000 == 0 && !ban_points.count(i/1000000)){
-      partitionHET.load_partition("/data/1/zhen/criteo-tb/partition/full/day0_"+ std::to_string(i/1000000) +"m.npz",0.001);
+    if(i % 1000000 == 0 && !ban_points.count(i/1000000)){
+      merger.update("/data/1/zhen/criteo-tb/partition/new/day0_" + std::to_string(i/1000000) + "m.bin");
+      partitionMerge.load_partition_from_merger(merger.generatePartition(0.001));
+      partitionHET.load_partition_from_npz("/data/1/zhen/criteo-tb/partition/full/day0_"+ std::to_string(i/1000000) +"m.npz",0.001);
     } 
     int bs = 1;
     int fieldSize = 26;
@@ -71,30 +66,27 @@ auto main() -> int
       }
     }
     partitionHET.processRequest(currentInput);
-    // partition.processRequest(currentInput);
+    partitionMerge.processRequest(currentInput);
     if(i > 0 && i%100000 == 0){
       auto now = std::chrono::system_clock::now();
       std::chrono::duration<double> elapsed_time = now - t;
       std::cout << i << ": " << elapsed_time.count() << " -------------------------------------------"<<std::endl;
-      std::cout << "Static Partition :" << std::endl;
+      std::cout << "HET Partition :" << std::endl;
       std::cout << "node access: " << partitionHET.getRemoteAccess() << " local access rate: " << partitionHET.getLocalRate()  << " cache hit rate: " \
       << partitionHET.getCacheHitRate() << " avg cost: " << partitionHET.getAvgCost() << std::endl;
-      std::cout << "Dynamic Partition :" << std::endl;
-      std::cout << "node access: " << partition.getRemoteAccess() << " local access rate: " << partition.getLocalRate()  << " cache hit rate: " \
-      << partition.getCacheHitRate() << " avg cost: " << partition.getAvgCost() << " embedding change: " << partition.getChangedEmbed() << std::endl;
+      std::cout << "Merge Partition :" << std::endl;
+      std::cout << "node access: " << partitionMerge.getRemoteAccess() << " local access rate: " << partitionMerge.getLocalRate()  << " cache hit rate: " \
+      << partitionMerge.getCacheHitRate() << " avg cost: " << partitionMerge.getAvgCost() << " embedding change: " << partitionMerge.getChangedEmbed() << std::endl;
       outfile << i;
       outfile << "," << partitionHET.getAvgCost();
-      outfile << ", " << partition.getAvgCost() << "," << partition.getChangedEmbed();
+      outfile << ", " << partitionMerge.getAvgCost() << "," << partitionMerge.getChangedEmbed();
       outfile << std::endl;
       cost.push_back(partitionHET.getAvgCost());
-      partition.clear();
+      mergeCost.push_back(partitionMerge.getAvgCost());
       partitionHET.clear();
+      partitionMerge.clear();
       t = now;
     }
-    // if(i > 0 && i % 10000000 == 0){
-    //   std::cout << "reset partition" << std::endl;
-    //   partition.resetPartition();
-    // } 
   }
   auto now = std::chrono::system_clock::now();
   std::chrono::duration<double> elapsed_time = now - start_time;
@@ -103,7 +95,7 @@ auto main() -> int
     std::cout <<" partition " << i << " Het partition "<< partitionHET.getPartitionCnt(i)\
     << " Het acccess count " << partitionHET.getAccessCnt(i) << std::endl;
   }
-  std::cout << "avg cost: " << std::accumulate(cost.begin(), cost.end(), 0.0) / cost.size() << std::endl;
-  // outfile.close();
+  std::cout << "HET avg cost: " << std::accumulate(cost.begin(), cost.end(), 0.0) / cost.size() << std::endl;
+  std::cout << "Merge avg cost: " << std::accumulate(mergeCost.begin(), mergeCost.end(), 0.0) / mergeCost.size() << std::endl;
   return 0;
 }

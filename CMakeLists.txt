@@ -16,20 +16,25 @@ include(cmake/variables.cmake)
 
 # ---- Declare library ----
 
-add_library(
-    eval_lib OBJECT
-    source/lib.cpp source/partition.cpp source/eval.cpp
-)
 
 include_directories(/usr/local/include)
 link_directories(/usr/local/lib)
 find_package(OpenMP REQUIRED)
+
+add_subdirectory(source/query)
+add_subdirectory(source/merge)
+
+add_library(
+    eval_lib OBJECT
+    source/lib.cpp source/partition.cpp source/eval.cpp
+)
 
 target_include_directories(
     eval_lib ${warning_guard}
     PUBLIC
     "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/source>"
 )
+target_link_libraries(eval_lib PUBLIC merge_lib)
 target_compile_features(eval_lib PUBLIC cxx_std_17)
 
 # ---- Declare executable ----
@@ -45,13 +50,11 @@ target_compile_features(eval_exe PRIVATE cxx_std_17)
 
 target_link_libraries(eval_exe PRIVATE eval_lib)
 target_link_libraries(eval_exe PRIVATE cnpy z)
+target_link_libraries(eval_exe PRIVATE merge_lib)
 target_link_libraries(eval_exe PUBLIC OpenMP::OpenMP_CXX)
 if (OPENMP_FOUND)
     target_compile_options(eval_exe PUBLIC ${OpenMP_CXX_FLAGS})
 endif()
-
-add_subdirectory(source/query)
-add_subdirectory(source/merge)
 
 # ---- Install rules ----
 

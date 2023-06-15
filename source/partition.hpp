@@ -7,6 +7,7 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include "merge/merger.hpp"
 
 class MisraGries {
 private:
@@ -111,7 +112,8 @@ protected:
 class StaticPartition : public BasePartition{
 public:
     StaticPartition(int n_parts, std::string path, double hot_rate);
-    void load_partition(std::string path, double hot_rate);
+    void load_partition_from_npz(std::string path, double hot_rate);
+    void load_partition_from_merger(const PartitionResult& pr);
     void load_query_partition(std::string path);
     virtual void processRequest(std::vector<int> &data) override;
 private:

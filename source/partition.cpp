@@ -39,10 +39,10 @@ void BasePartition::expandEmbedRange(int n){
 
 
 StaticPartition::StaticPartition(int n_parts, std::string path, double hot_rate) : BasePartition(n_parts) {
-    load_partition(path, hot_rate);
+    load_partition_from_npz(path, hot_rate);
 }
 
-void StaticPartition::load_partition(std::string path, double hot_rate){
+void StaticPartition::load_partition_from_npz(std::string path, double hot_rate){
     cnpy::npz_t partition = cnpy::npz_load(path);
     partition_ = partition["embed_partition"].as_vec<int>();
     query_partition_ = partition["data_partition"].as_vec<int>();
@@ -59,6 +59,22 @@ void StaticPartition::load_partition(std::string path, double hot_rate){
     cache_ = new StaticCache(priorList, hot_rate);
     // cache_ = new GlobalCache(n_parts_,30000);
 }
+
+void StaticPartition::load_partition_from_merger(const PartitionResult& pr){
+    n_parts_ = pr.caches.size();
+    embed_cnt_.resize(n_parts_,0);
+    access_cnt_.resize(n_parts_,0);
+    max_id_ = pr.partition.size()-1;
+    n_embeds_ = max_id_;
+    for(int p : partition_){
+        embed_cnt_[p]++;
+    }
+    vector<vector<int>> priorList(n_parts_);
+    for(int i = 0; i < n_parts_; i++) priorList[i] = pr.caches[i];
+    cache_ = new StaticCache(priorList, 1.);
+}
+
+
 
 void StaticPartition::load_query_partition(string path){
     cnpy::npz_t partition = cnpy::npz_load(path);
