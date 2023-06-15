@@ -9,7 +9,7 @@ endif()
 set(Protobuf_INCLUDE_DIR "/usr/local/protobuf/include")
 set(Protobuf_LIBRARY "/usr/local/protobuf/lib")
 find_package(Protobuf REQUIRED)
-set(PROTO_FILES ../proto/partial_result.proto)
+file(GLOB PROTO_FILES ${CMAKE_SOURCE_DIR}/source/proto/*.proto)
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
 
 add_library(
@@ -17,7 +17,7 @@ add_library(
     merger.cpp ${PROTO_SRCS}
 )
 
-target_include_directories(merge_lib PUBLIC ${CMAKE_CURRENTPROTO_HDRS_BINARY_DIR})
+target_include_directories(merge_lib PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(merge_lib PUBLIC ${Protobuf_INCLUDE_DIRS})
 target_link_libraries(merge_lib /usr/local/protobuf/lib/libprotobuf.so /usr/local/protobuf/lib/libprotobuf.a)
 

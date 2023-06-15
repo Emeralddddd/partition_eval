@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <queue>
 #include <fstream>
+#include "final_result.pb.h"
 
 using std::vector;
 
@@ -111,7 +112,7 @@ PartitionResult Merger::generatePartition(double hot_rate){
     int hot_length = n_embeds_ * hot_rate;
     PartitionResult ret;
     ret.partition.resize(n_embeds_,-1);
-    ret.caches.resize(n_parts_,vector<int>(n_embeds_,-1));
+    ret.caches.resize(n_parts_,vector<int>(hot_length,-1));
     for(int i = 0; i < n_embeds_; i++){
         int part = std::max_element(weights_[i].begin(), weights_[i].end()) - weights_[i].begin();
         ret.partition[i] = weights_[i][part] > 0 ? part : -1;
