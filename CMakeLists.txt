@@ -21,7 +21,6 @@ include_directories(/usr/local/include)
 link_directories(/usr/local/lib)
 find_package(OpenMP REQUIRED)
 
-add_subdirectory(source/query)
 add_subdirectory(source/merge)
 add_subdirectory(source/eval)
 
