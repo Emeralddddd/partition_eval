@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <queue>
 #include <fstream>
-#include "final_result.pb.h"
 
 using std::vector;
 
@@ -94,13 +93,11 @@ void Merger::addPartition(const vector<int>& new_partition, \
         throw std::runtime_error("partition size not match");
         return;
     }
-    #pragma omp parallel for num_threads(32)
     for(int i = 0; i < n_embeds_; i++){
         if(new_partition[i] >= 0){
             ++weights_[i][new_partition[i]];
         }
     }
-    #pragma omp parallel for num_threads(32)
     for(int i = 0; i < n_parts_; i++){
         for(int j = 0; j < n_embeds_;j++){
             priority_[i][j] += std::max(0.,new_priority[i][j]);
@@ -113,10 +110,12 @@ PartitionResult Merger::generatePartition(double hot_rate){
     PartitionResult ret;
     ret.partition.resize(n_embeds_,-1);
     ret.caches.resize(n_parts_,vector<int>(hot_length,-1));
+    #pragma omp parallel for num_threads(16)
     for(int i = 0; i < n_embeds_; i++){
         int part = std::max_element(weights_[i].begin(), weights_[i].end()) - weights_[i].begin();
         ret.partition[i] = weights_[i][part] > 0 ? part : -1;
     }
+    #pragma omp parallel for num_threads(4)
     for(int i = 0; i < n_parts_; i++){
         std::priority_queue<std::pair<double,int>, std::vector<std::pair<double,int>>, std::greater<std::pair<double,int>>> minHeap;
         for(int j = 0; j < n_embeds_; j++){
