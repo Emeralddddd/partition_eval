@@ -39,21 +39,21 @@ auto main() -> int
   std::vector<std::vector<int>> data;
   load_data("/data/1/zhen/criteo-tb/sparse_day_0.npy", data);
   std::cout << "data loaded" << std::endl;
-  StaticPartition partitionHET(4,"/data/1/zhen/criteo-tb/partition/window/day0_195m.npz",0.001);
-  StaticPartition partitionMerge(4,"/data/1/zhen/criteo-tb/partition/window/day0_195m.npz",0.001);
-  Merger merger(4);
+  StaticPartition partitionHET(4,"/data/1/zhen/criteo-tb/partition/full/day0_1m.npz",0.001);
+  StaticPartition partitionMerge(4,"/data/1/zhen/criteo-tb/partition/full/day0_1m.npz",0.001);
+  // Merger merger(4);
   vector<double> cost;
   vector<double> mergeCost;
   std::cout << "partition test start" << std::endl;
   auto start_time = std::chrono::system_clock::now();
   auto t = std::chrono::system_clock::now();
   std::unordered_set<int> ban_points = {22,23,24,26,27,28,31,32,33,34,36,39,42,43,51,56};
-  for(int i = 20000001; i < 80000000; i++){
-    if(i % 1000000 == 0 && !ban_points.count(i/1000000)){
-      merger.update("/data/1/zhen/criteo-tb/partition/new/day0_" + std::to_string(i/1000000) + "m.bin");
-      partitionMerge.load_partition_from_merger(merger.generatePartition(0.001));
-      partitionHET.load_partition_from_npz("/data/1/zhen/criteo-tb/partition/full/day0_"+ std::to_string(i/1000000) +"m.npz",0.001);
-    } 
+  for(int i = 1; i < 80000000; i++){
+    // if(i % 1000000 == 0 && !ban_points.count(i/1000000)){
+    //   // merger.update("/data/1/zhen/criteo-tb/partition/new/day0_" + std::to_string(i/1000000) + "m.bin");
+    //   // partitionMerge.load_partition_from_merger(merger.generatePartition(0.001));
+    //   partitionHET.load_partition_from_npz("/data/1/zhen/criteo-tb/partition/full/day0_"+ std::to_string(i/1000000) +"m.npz",0.001);
+    // } 
     int bs = 1;
     int fieldSize = 26;
     vector<int> currentInput;
@@ -65,7 +65,7 @@ auto main() -> int
       }
     }
     partitionHET.processRequest(currentInput);
-    partitionMerge.processRequest(currentInput);
+    // partitionMerge.processRequest(currentInput);
     if(i > 0 && i%100000 == 0){
       auto now = std::chrono::system_clock::now();
       std::chrono::duration<double> elapsed_time = now - t;
