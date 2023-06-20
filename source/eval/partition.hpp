@@ -36,6 +36,18 @@ public:
     virtual void update(const std::vector<int> &data, int part) = 0;
 };
 
+class EmptyCache : public BaseCache{
+public:
+    std::vector<int> query(const std::vector<int> &data, int part){
+        int n = data.size();
+        std::vector<int> res(n,0);
+        return res;
+    }
+    void update(const std::vector<int> &data, int part){
+        return;
+    }
+};
+
 class StaticCache : public BaseCache{
 public:
     StaticCache(const std::vector<std::vector<int>> &priorList, double hotRate);

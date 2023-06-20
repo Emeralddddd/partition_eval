@@ -106,15 +106,21 @@ void Merger::addPartition(const vector<int>& new_partition, \
 }
 
 PartitionResult Merger::generatePartition(double hot_rate){
-    int hot_length = n_embeds_ * hot_rate;
     PartitionResult ret;
     ret.partition.resize(n_embeds_,-1);
-    ret.caches.resize(n_parts_,vector<int>(hot_length,-1));
+
     #pragma omp parallel for num_threads(16)
     for(int i = 0; i < n_embeds_; i++){
         int part = std::max_element(weights_[i].begin(), weights_[i].end()) - weights_[i].begin();
         ret.partition[i] = weights_[i][part] > 0 ? part : -1;
     }
+    if(hot_rate < 1e-6){
+        ret.caches.resize(n_parts_);
+        return ret;
+    } 
+    int hot_length = n_embeds_ * hot_rate;
+    ret.caches.resize(n_parts_,vector<int>(hot_length,-1));
+
     #pragma omp parallel for num_threads(4)
     for(int i = 0; i < n_parts_; i++){
         std::priority_queue<std::pair<double,int>, std::vector<std::pair<double,int>>, std::greater<std::pair<double,int>>> minHeap;
