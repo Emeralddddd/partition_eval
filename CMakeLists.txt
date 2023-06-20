@@ -23,6 +23,7 @@ find_package(OpenMP REQUIRED)
 
 add_subdirectory(source/merge)
 add_subdirectory(source/eval)
+add_subdirectory(source/embed_server)
 
 # # ---- Declare executable ----
 

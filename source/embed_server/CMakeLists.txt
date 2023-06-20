@@ -1,0 +1,2 @@
+add_executable(embed_server_exe main.cpp)
+set_property(TARGET embed_server_exe PROPERTY OUTPUT_NAME embed_server)
