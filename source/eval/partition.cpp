@@ -110,15 +110,14 @@ void StaticPartition::processRequest(vector<int> &data){
         vector<int> cacheResults = cache_->query(data, j);
         for(int i = 0; i < n ; i++){
             if(!dataValid[i]) continue;
-            if(parts[i] != j){ 
-                if(cacheResults[i] == 0){
-                    partCnt[j]++;
-                    if(!isAccessed[parts[i]]){
-                        isAccessed[parts[i]] = true;
-                        remoteAccess[j]++;
-                    }
-                }else cacheHitCnt[j]++;
-            }else localAccessCnt[j]++; 
+            if(parts[i] == j) localAccessCnt[j]++;
+            else if(cacheResults[i] == 0){
+                partCnt[j]++;
+                if(!isAccessed[parts[i]]){
+                    isAccessed[parts[i]] = true;
+                    remoteAccess[j]++;
+                }
+            }else cacheHitCnt[j]++; 
         }
     }
     // targetPart = min_element(remoteAccess.begin(),remoteAccess.end()) - remoteAccess.begin();
