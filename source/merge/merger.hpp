@@ -26,9 +26,9 @@ public:
     const std::vector<std::vector<double>>& new_priority);
     void addPartition(const PartialResult& pr);
     void resize(int n_embeds);
-    
 
     PartitionResult generatePartition(double hot_rate);
+    void savePartitionToNpz(const PartitionResult &pr,const std::string &path);
 private:
     int n_parts_;
     int n_embeds_;
