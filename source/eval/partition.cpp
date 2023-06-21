@@ -78,7 +78,7 @@ void StaticPartition::load_partition_from_merger(const PartitionResult& pr){
         embed_cnt_[p]++;
     }
     vector<vector<int>> priorList(n_parts_);
-    for(int i = 0; i < n_parts_; i++) priorList[i] = pr.caches[i];
+    for(int i = 0; i < n_parts_; i++) priorList[i] = std::move(pr.caches[i]);
     cache_ = new StaticCache(priorList, 1.);
 }
 
