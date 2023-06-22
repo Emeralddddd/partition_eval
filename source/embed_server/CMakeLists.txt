@@ -13,7 +13,7 @@ file(GLOB PROTO_FILES ${CMAKE_SOURCE_DIR}/source/proto/embed_server.proto)
 file(GLOB PROTO_SRCS ${CMAKE_CURRENT_BINARY_DIR}/*.grpc.pb.cc)
 file(GLOB GRPC_SRCS ${CMAKE_CURRENT_BINARY_DIR}/*.pb.cc)
 
-add_library(embed_server_lib OBJECT inner_embed.cpp embed_server.cpp embed_client.cpp ${PROTO_SRCS} ${GRPC_SRCS})
+add_library(embed_server_lib OBJECT inner_embed.cpp embed_server.cpp embed_client.cpp infer_server.cpp ${PROTO_SRCS} ${GRPC_SRCS})
 message(Status ${grpc_SOURCE_DIR}/include)
 target_include_directories(embed_server_lib PUBLIC
   ${CMAKE_CURRENT_BINARY_DIR}
