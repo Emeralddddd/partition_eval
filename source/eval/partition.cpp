@@ -69,7 +69,7 @@ void StaticPartition::load_partition_from_npz(std::string path, double hot_rate)
 }
 
 void StaticPartition::load_partition_from_merger(const PartitionResult& pr){
-    partition_ = std::move(pr.partition);
+    partition_ = pr.partition;
     n_parts_ = pr.caches.size();
     embed_cnt_.resize(n_parts_,0);
     access_cnt_.resize(n_parts_,0);
@@ -78,9 +78,10 @@ void StaticPartition::load_partition_from_merger(const PartitionResult& pr){
     for(int p : partition_){
         if(p >= 0) embed_cnt_[p]++;
     }
-    vector<vector<int>> priorList(n_parts_);
-    for(int i = 0; i < n_parts_; i++) priorList[i] = pr.caches[i];
-    cache_ = new StaticCache(priorList, 1.);
+    if(pr.caches.size() == 0 || pr.caches[0].size() == 0) cache_ = new EmptyCache();
+    else cache_ = new StaticCache(pr.caches, 1.);
+    // vector<vector<int>> priorList(n_parts_);
+    // for(int i = 0; i < n_parts_; i++) priorList[i] = pr.caches[i];
 }
 
 
