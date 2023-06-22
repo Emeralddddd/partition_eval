@@ -51,8 +51,9 @@ void StaticPartition::load_partition_from_npz(std::string path, double hot_rate)
     access_cnt_.resize(n_parts_,0);
     max_id_ = partition_.size()-1;
     n_embeds_ = max_id_;
+    std::cout << partition_.size() << std::endl;
     for(int p : partition_){
-        embed_cnt_[p]++;
+        if(p >= 0) embed_cnt_[p]++;
     }
     std::cout << hot_rate << std::endl;
     if(hot_rate > 1e-6){
@@ -75,10 +76,10 @@ void StaticPartition::load_partition_from_merger(const PartitionResult& pr){
     max_id_ = pr.partition.size()-1;
     n_embeds_ = max_id_;
     for(int p : partition_){
-        embed_cnt_[p]++;
+        if(p >= 0) embed_cnt_[p]++;
     }
     vector<vector<int>> priorList(n_parts_);
-    for(int i = 0; i < n_parts_; i++) priorList[i] = std::move(pr.caches[i]);
+    for(int i = 0; i < n_parts_; i++) priorList[i] = pr.caches[i];
     cache_ = new StaticCache(priorList, 1.);
 }
 
@@ -100,8 +101,8 @@ void StaticPartition::processRequest(vector<int> &data){
     vector<int> localAccessCnt(n_parts_,0);
     int targetPart;
     for(int i = 0; i < n; i++){
-        queryCnt_++;
         if(data[i] <= max_id_ && parts[i] != -1){
+            queryCnt_++;
             dataValid[i] = true;
         }
     }
