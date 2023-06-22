@@ -13,7 +13,6 @@ RandomInnerEmbedding::RandomInnerEmbedding(int _embed_size, int _embed_dim)
 
 void RandomInnerEmbedding::query(const std::vector<int>& input, std::vector<std::vector<float>>& output){
     int n = input.size();
-    std::cout <<  embed_size_ << " " <<embed_dim_ << std::endl;
     output.resize(n, vector<float>(embed_dim_));
     #pragma omp parallel for num_threads(4)
     for(int i = 0; i < n; i++){

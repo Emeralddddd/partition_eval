@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+service EmbedServer{
+    rpc Lookup (EmbedRequest) returns (EmbedReply) {}
+}
+
+message EmbedRequest{
+    repeated int32 data = 1;
+}
+
+message SingleEmbed{
+    repeated float data = 1;
+}
+
+message EmbedReply{
+    repeated SingleEmbed embed_values = 1;
+}

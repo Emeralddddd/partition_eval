@@ -5,7 +5,7 @@ find_package(Protobuf REQUIRED)
 include_directories(${CMAKE_SOURCE_DIR}/source/external/include)
 link_directories(${Protobuf_LIBRARIES})
 
-file(GLOB PROTO_FILES ${CMAKE_SOURCE_DIR}/source/proto/*.proto)
+file(GLOB PROTO_FILES ${CMAKE_SOURCE_DIR}/source/proto/partial_result.proto)
 protobuf_generate_cpp(PROTO_SRCS PROTO_HDRS ${PROTO_FILES})
 
 add_library(
