@@ -8,6 +8,7 @@ class EmbedClient{
 public:
     EmbedClient(std::shared_ptr<grpc::Channel> channel) : stub_(EmbedServer::NewStub(channel)){}
 
+    void RemoteLookup(const EmbedRequest& request, EmbedReply* reply);
     void RemoteLookup(const std::vector<int>& input, std::vector<std::vector<float>>& output);
 private:
     std::unique_ptr<EmbedServer::Stub> stub_;
