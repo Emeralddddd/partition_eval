@@ -52,6 +52,7 @@ void Merger::init(const std::string& path) {
 
 void Merger::resize(int n_embeds){
     n_embeds_ = n_embeds;
+    pr_.partition.resize(n_embeds_,-1);
     weights_.resize(n_embeds_, vector<int>(n_parts_));
     for(int i = 0; i < n_parts_; i++){
         priority_[i].resize(n_embeds_,0);
@@ -106,26 +107,27 @@ void Merger::addPartition(const vector<int>& new_partition, \
 }
 
 PartitionResult Merger::generatePartition(double hot_rate){
-    PartitionResult ret;
-    ret.partition.resize(n_embeds_,-1);
+    last_embed_changed_ = 0;
 
     #pragma omp parallel for num_threads(16)
     for(int i = 0; i < n_embeds_; i++){
         int part = std::max_element(weights_[i].begin(), weights_[i].end()) - weights_[i].begin();
-        ret.partition[i] = weights_[i][part] > 0 ? part : -1;
+        int old_part = pr_.partition[i];
+        pr_.partition[i] = weights_[i][part] > 0 ? part : -1;
+        if(pr_.partition[i] != old_part) last_embed_changed_++;
     }
     if(hot_rate < 1e-6){
-        ret.caches.resize(n_parts_);
-        return ret;
+        pr_.caches.resize(n_parts_);
+        return pr_;
     } 
     int hot_length = n_embeds_ * hot_rate;
-    ret.caches.resize(n_parts_,vector<int>(hot_length,-1));
+    pr_.caches.resize(n_parts_,vector<int>(hot_length,-1));
 
     #pragma omp parallel for num_threads(4)
     for(int i = 0; i < n_parts_; i++){
         std::priority_queue<std::pair<double,int>, std::vector<std::pair<double,int>>, std::greater<std::pair<double,int>>> minHeap;
         for(int j = 0; j < n_embeds_; j++){
-            if(priority_[i][j] <= 0 || ret.partition[j] == i) continue;
+            if(priority_[i][j] <= 0 || pr_.partition[j] == i) continue;
             if(minHeap.size() < hot_length) minHeap.emplace(priority_[i][j],j);
             else if(minHeap.top().first < priority_[i][j]){
                 minHeap.pop();
@@ -133,11 +135,11 @@ PartitionResult Merger::generatePartition(double hot_rate){
             }
         }
         for(int j = 0; j < hot_length && !minHeap.empty(); j++){
-            ret.caches[i][j] = minHeap.top().second;
+            pr_.caches[i][j] = minHeap.top().second;
             minHeap.pop();
         }
     }
-    return ret;
+    return pr_;
 }
 
 void Merger::savePartitionToNpz(const PartitionResult &pr,const std::string &path){

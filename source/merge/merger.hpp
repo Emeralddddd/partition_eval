@@ -29,9 +29,12 @@ public:
 
     PartitionResult generatePartition(double hot_rate);
     void savePartitionToNpz(const PartitionResult &pr,const std::string &path);
+    int getLastEmbedChanged(){return last_embed_changed_;}
 private:
     int n_parts_;
     int n_embeds_;
+    int last_embed_changed_ = 0;
+    PartitionResult pr_;
     std::vector<std::vector<int>> weights_;
     std::vector<std::vector<double>> priority_;
     std::vector<std::vector<int>> caches_;
