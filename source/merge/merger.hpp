@@ -28,7 +28,7 @@ public:
     void resize(int n_embeds);
 
     PartitionResult generatePartition(double hot_rate);
-    void savePartitionToNpz(const PartitionResult &pr,const std::string &path);
+    void savePartitionToNpz(const std::string &path);
     int getLastEmbedChanged(){return last_embed_changed_;}
 private:
     int n_parts_;

@@ -26,6 +26,6 @@ auto main(int argc, char* argv[]) -> int{
         std::cout << merger.getLastEmbedChanged() << std::endl;
     }
     auto result = merger.generatePartition(0.001);
-    merger.savePartitionToNpz(result, CRITEO_PATH + "partition/merged/day0_80m.npz");
+    merger.savePartitionToNpz(CRITEO_PATH + "partition/merged/day0_80m.npz");
     return 0; 
 }

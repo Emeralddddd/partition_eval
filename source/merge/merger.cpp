@@ -142,13 +142,15 @@ PartitionResult Merger::generatePartition(double hot_rate){
     return pr_;
 }
 
-void Merger::savePartitionToNpz(const PartitionResult &pr,const std::string &path){
-    int n = pr.partition.size();
-    int n_part = pr.caches.size();
-    cnpy::npz_save(path,"embed_partition",&pr.partition[0],{n},"w");
+void Merger::savePartitionToNpz(const std::string &path){
+    int n = pr_.partition.size();
+    int n_part = pr_.caches.size();
+    std::cout << n << std::endl;
+    cnpy::npz_save(path,"embed_partition",&pr_.partition[0],{n},"w");
     for(int i = 0; i < n_part; i++){
-        int cache_size = pr.caches[i].size();
-        cnpy::npz_save(path,std::to_string(i),&pr.caches[i][0],{cache_size},"a");
+        int cache_size = pr_.caches[i].size();
+        cnpy::npz_save(path,std::to_string(i),&pr_.caches[i][0],{cache_size},"a");
     }
+    cnpy::npz_save(path,"data_partition",&pr_.partition[0],{1},"a");
     return;
 }
