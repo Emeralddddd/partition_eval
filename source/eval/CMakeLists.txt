@@ -13,5 +13,5 @@ target_link_libraries(eval_lib PUBLIC merge_lib)
 
 add_executable(eval_exe main.cpp)
 set_property(TARGET eval_exe PROPERTY OUTPUT_NAME eval)
-target_link_libraries(eval_exe PRIVATE eval_lib merge_lib cnpy z OpenMP::OpenMP_CXX)
+target_link_libraries(eval_exe PRIVATE eval_lib merge_lib libcnpy.a z OpenMP::OpenMP_CXX)
 

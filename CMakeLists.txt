@@ -15,11 +15,21 @@ include(cmake/variables.cmake)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # ---- Declare library ----
-
-
+include_directories(${CMAKE_BINARY_DIR}/_deps/cnpy-src)
+link_directories(${CMAKE_BINARY_DIR}/_deps/cnpy-build)
 include_directories(/usr/local/include)
 link_directories(/usr/local/lib)
 find_package(OpenMP REQUIRED)
+
+include(FetchContent)
+FetchContent_Declare(
+  cnpy
+  GIT_REPOSITORY https://github.com/rogersce/cnpy.git
+  GIT_TAG master
+)
+FetchContent_MakeAvailable(cnpy)
+
+# set(cnpy_static  ${CMAKE_BINARY_DIR}/_deps/cnpy_build)
 
 add_subdirectory(source/merge)
 add_subdirectory(source/eval)

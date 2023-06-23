@@ -20,7 +20,7 @@ target_include_directories(embed_server_lib PUBLIC
   ${grpc_SOURCE_DIR}/include 
   ${grpc_SOURCE_DIR}/third_party/abseil-cpp
   ${grpc_SOURCE_DIR}/third_party/protobuf/src)
-target_link_libraries(embed_server_lib PRIVATE OpenMP::OpenMP_CXX grpc++ cnpy)
+target_link_libraries(embed_server_lib PRIVATE OpenMP::OpenMP_CXX grpc++ libcnpy.a)
 
 add_executable(embed_server_exe main.cpp)
 set_property(TARGET embed_server_exe PROPERTY OUTPUT_NAME embed_server)

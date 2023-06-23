@@ -19,4 +19,4 @@ target_link_libraries(merge_lib protobuf OpenMP::OpenMP_CXX)
 add_executable(merge_exe main.cpp)
 set_property(TARGET merge_exe PROPERTY OUTPUT_NAME merge)
 
-target_link_libraries(merge_exe merge_lib cnpy z)
+target_link_libraries(merge_exe merge_lib libcnpy.a z)
