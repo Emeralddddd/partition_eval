@@ -1,4 +1,5 @@
 #include "infer_client.hpp"
+#include "../utils/utils.hpp"
 #include <iostream>
 
 using std::vector;
@@ -11,6 +12,9 @@ auto main()->int{
     Dispatcher dispatcher(4, server_address_list);
     std::cout << "created dispatcher" << std::endl;
     dispatcher.LoadPartitionNPZ(CRITEO_PATH + "partition/merged/day0_80m.npz",0.001);
+
+    vector<vector<int>> data;
+    load_data(CRITEO_PATH + "sparse_day_0.npy", data);
     vector<int> input1 = {81025217,  92483388,  92497334,  92506222,  92513787,  92529243,
         92530645,  92535997,  92537134,  94640450, 104267943, 104988298,
        105079864, 105081565, 105087455, 105091984, 105092072, 105092795,

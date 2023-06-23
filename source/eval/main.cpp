@@ -53,14 +53,7 @@ auto main() -> int
     } 
     int bs = 1;
     int fieldSize = 26;
-    vector<int> currentInput;
-    currentInput.reserve(bs * fieldSize);
-    for (int j = 0; j < bs; j++)
-    {
-      for(auto & x : data[i*bs + j]) {
-        currentInput.push_back(x);
-      }
-    }
+    vector<int> currentInput = getCurrentInput(data, bs, fieldSize, i);
     partitionHET.processRequest(currentInput);
     partitionMerge.processRequest(currentInput);
     if(i > 0 && i%100000 == 0){
