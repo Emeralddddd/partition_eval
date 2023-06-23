@@ -7,7 +7,7 @@ const static std::string CRITEO_PATH = "/home/xuzhizhen/datasets/criteo-tb/";
 
 auto main()->int{
     std::string server_address("0.0.0.0:50051");
-    vector<std::string> server_address_list= {server_address,server_address,server_address,server_address};
+    vector<std::string> server_address_list= {"49.52.27.23:50051","49.52.27.25:50051","49.52.26.26:50051","49.52.27.32:50051"};
     Dispatcher dispatcher(4, server_address_list);
     std::cout << "created dispatcher" << std::endl;
     dispatcher.LoadPartitionNPZ(CRITEO_PATH + "partition/merged/day0_80m.npz",0.001);
