@@ -1,11 +1,14 @@
 syntax = "proto3";
 
-import "embed_server.proto";
+message InferenceRequest{
+    repeated int32 data = 1;
+    repeated int32 pos = 2;
+}
 
 message InferenceReply{
     repeated int32 data = 1;
 }
 
 service InferenceServer{
-    rpc Inference (EmbedRequest) returns (InferenceReply) {}
+    rpc Inference (InferenceRequest) returns (InferenceReply) {}
 }
