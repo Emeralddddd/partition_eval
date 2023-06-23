@@ -34,6 +34,7 @@ FetchContent_MakeAvailable(cnpy)
 add_subdirectory(source/merge)
 add_subdirectory(source/eval)
 add_subdirectory(source/embed_server)
+add_subdirectory(source/utils)
 
 # # ---- Declare executable ----
 
