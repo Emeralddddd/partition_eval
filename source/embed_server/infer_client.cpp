@@ -3,38 +3,31 @@
 #include <chrono>
 
 using std::vector;
+using std::unordered_set;
 
 void Dispatcher::LoadPartitionNPZ(std::string path, double hot_rate){
     vector<int> embed_partition = cnpy::npz_load(path,"embed_partition").as_vec<int>();
     int n = embed_partition.size();
     if(n > n_embeds_) resize(n);
-    for(int i = 0; i < n; i++){
-        if(embed_partition[i] < 0) continue;
-        partition_bits[i] = 1 << embed_partition[i];
-    }
+    partition_ = std::move(embed_partition);
+    caches_ =  vector<unordered_set<int>>(4);
     if(hot_rate < 1e-6) return;
     int hot_size = hot_rate * n_embeds_;
     for(int i = 0; i < n_parts_; i++){
         vector<int> priority_list = cnpy::npz_load(path,"embed_partition").as_vec<int>();
-        for(int j = 0; j < hot_size; j++){
-            int embed_id = priority_list[j];
-            partition_bits[embed_id] |= (1 << i);
-        }
+        caches_[i] = unordered_set<int>(priority_list.begin(),priority_list.end());
     }
 }
 
 void Dispatcher::LoadPartitionMerge(const PartitionResult& pr){
     int n = pr.partition.size();
     if(n > n_embeds_) resize(n);
+    caches_ =  vector<unordered_set<int>>(4);
     for(int i = 0; i < n; i++){
-        if(pr.partition[i] < 0) continue;
-        partition_bits[i] = 1 << pr.partition[i];
+       partition_ = std::move(pr.partition);
     }
     for(int i = 0; i < n_parts_; i++){
-        for(int j = 0; j < pr.caches[i].size(); j++){
-            int embed_id = pr.caches[i][j];
-            partition_bits[embed_id] |= (1 << i);
-        }
+        caches_[i] = unordered_set<int>(pr.caches[i].begin(),pr.caches[i].end());
     }
 }
 
@@ -49,16 +42,16 @@ void Dispatcher::DispatchRequest(const vector<int> &input){
     request.mutable_pos()->Reserve(n); 
     for(int i = 0; i < n; i++){
         if(input[i] >= n_embeds_ || input[i] < 0) continue;
-        int bit = partition_bits[input[i]];
+        int targetPart = partition_[input[i]] == -1 ? input[i] % n_parts_ : partition_[input[i]];
         request.add_data(input[i]);
+        request.add_pos(targetPart);
         for(int j = 0; j < n_parts_; j++){
-            if((bit >> j) & 1) request.add_pos(j);
-            else partCnt[j]++;
+            if(targetPart != j && !caches_[j].count(input[i])) partCnt[j]++;
         }
     }
     int target = std::min_element(partCnt.begin(),partCnt.end()) - partCnt.begin();
     for(int i = 0; i < n; i++){
-        if((partition_bits[input[i]] >> target) & 1) request.set_pos(i,target);
+        if(caches_[target].count(input[i])) request.set_pos(i,target);
     }
     stub_list_[target]->Inference(&context, request, &reply);
     auto end = std::chrono::high_resolution_clock::now();

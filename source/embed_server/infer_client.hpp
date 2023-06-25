@@ -17,7 +17,7 @@ public:
     }
     void resize(int n_embeds){
         n_embeds_ = n_embeds;
-        partition_bits.resize(n_embeds_);
+        partition_.resize(n_embeds_);
     }
     void LoadPartitionNPZ(std::string path, double hr);
     void LoadPartitionMerge(const PartitionResult& pr);
@@ -33,7 +33,8 @@ public:
 
 private:
     int n_embeds_, n_parts_, query_cnt_ = 0;
-    std::vector<int> partition_bits;
+    std::vector<int> partition_;
+    std::vector<std::unordered_set<int>> caches_;
     std::vector<std::unique_ptr<InferenceServer::Stub>> stub_list_;
     std::vector<int> time_vec_;
 };
