@@ -52,6 +52,7 @@ void StaticPartition::load_partition_from_npz(std::string path, double hot_rate)
     partition_ = partition["embed_partition"].as_vec<int>();
     query_partition_ = partition["data_partition"].as_vec<int>();
     assert(n_parts_ == partition.size() - 2);
+    embed_cnt_.clear();
     embed_cnt_.resize(n_parts_,0);
     access_cnt_.resize(n_parts_,0);
     max_id_ = partition_.size()-1;
@@ -64,29 +65,28 @@ void StaticPartition::load_partition_from_npz(std::string path, double hot_rate)
     if(hot_rate > 1e-6){
         vector<vector<int>> priorList(n_parts_);
         for(int i = 0; i < n_parts_; i++) priorList[i] = partition[std::to_string(i)].as_vec<int>();
-        cache_ = new StaticCache(priorList, hot_rate);
+        cache_ = std::make_unique<StaticCache>(priorList, hot_rate);
     }else{
-        cache_ = new EmptyCache();
+        cache_ = std::make_unique<EmptyCache>();
         std::cout << "using empty cache" << std::endl;
     }
-
     // cache_ = new GlobalCache(n_parts_,30000);
 }
 
 void StaticPartition::load_partition_from_merger(const PartitionResult& pr){
     partition_ = pr.partition;
-    assert(n_parts_ == pr.caches.size();)
+    assert(n_parts_ == pr.caches.size());
     embed_cnt_.resize(n_parts_,0);
     access_cnt_.resize(n_parts_,0);
     max_id_ = pr.partition.size()-1;
     n_embeds_ = max_id_;
+    for(int i = 0; i < n_parts_; i++) embed_cnt_[i] = 0; 
     for(int p : partition_){
         if(p >= 0) embed_cnt_[p]++;
     }
-    if(pr.caches.size() == 0 || pr.caches[0].size() == 0) cache_ = new EmptyCache();
-    else cache_ = new StaticCache(pr.caches, 1.);
-    // vector<vector<int>> priorList(n_parts_);
-    // for(int i = 0; i < n_parts_; i++) priorList[i] = pr.caches[i];
+    vector<vector<int>> priorList(n_parts_);
+    for(int i = 0; i < n_parts_; i++) priorList[i] = pr.caches[i];
+    cache_ = std::make_unique<StaticCache>(pr.caches,1.);
 }
 
 
@@ -99,6 +99,7 @@ void StaticPartition::load_query_partition(string path){
 void StaticPartition::processRequest(vector<int> &data){
     int n = data.size();
     int cost = 0;
+    int miss = 0;
     vector<int> partCnt(n_parts_, 0);
     vector<int> parts = getPartitions(data);
     vector<bool> dataValid(n,false);
@@ -107,9 +108,11 @@ void StaticPartition::processRequest(vector<int> &data){
     vector<int> localAccessCnt(n_parts_,0);
     int targetPart;
     for(int i = 0; i < n; i++){
+        queryCnt_++;
         if(data[i] <= max_id_ && parts[i] != -1){
-            queryCnt_++;
             dataValid[i] = true;
+        }else{
+            miss++;
         }
     }
     for(int j = 0; j < n_parts_; j++){
@@ -132,7 +135,7 @@ void StaticPartition::processRequest(vector<int> &data){
     // todo 选择targetPart的方式
     // vector<int> partCnt(n_parts, 0);
     access_cnt_[targetPart]++;
-    allCost_ += partCnt[targetPart];
+    allCost_ += partCnt[targetPart] + miss;
     cacheHit_ += cacheHitCnt[targetPart];
     localCnt_ += localAccessCnt[targetPart];
     remoteAccessCnt_ += remoteAccess[targetPart];

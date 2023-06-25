@@ -81,9 +81,6 @@ private:
 class BasePartition{
 public:
     BasePartition(int n_parts) : n_parts_(n_parts),embed_cnt_(n_parts,0),access_cnt_(n_parts,0) {}
-    ~BasePartition(){
-        if(cache_) delete cache_;
-    }
     std::vector<int> getPartitions(std::vector<int> &data);
     int getPartition(int u);
     int getPartitionCnt(int part);
@@ -118,7 +115,7 @@ protected:
     int localCnt_ = 0;
     int changeEmbed_ = 0;
     int remoteAccessCnt_ = 0;
-    BaseCache *cache_ = nullptr;
+    std::unique_ptr<BaseCache> cache_;
 };
 
 class StaticPartition : public BasePartition{
@@ -137,7 +134,7 @@ private:
 class ScorePartition : public BasePartition{
 public:
     ScorePartition(int n_parts) : BasePartition(n_parts){
-        cache_ = new GlobalCache(n_parts,30000);
+        cache_ = std::make_unique<GlobalCache>(n_parts,30000);
     }
     void updatePartition(std::vector<int> &data);
     void expandEmbedRange(int n) override;
