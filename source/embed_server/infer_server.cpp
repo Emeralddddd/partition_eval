@@ -33,7 +33,6 @@ grpc::Status InferServerImpl::Inference(grpc::ServerContext* context, const Infe
         }
     }
     vector<vector<float>> results;
-    std::cout << "starting lookup" << std::endl;
     int completed_calls = 0;
     while (completed_calls < all_calls){
         void* got_tag;
@@ -55,7 +54,6 @@ grpc::Status InferServerImpl::Inference(grpc::ServerContext* context, const Infe
             ++completed_calls;
         }
     }
-    std::cout << "lookup finish" << std::endl;
     for(int i = 0; i < n; i++){
         reply->add_data(request->data(i));
     }

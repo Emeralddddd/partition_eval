@@ -1,5 +1,6 @@
 #include "infer_client.hpp"
 #include "cnpy.h"
+#include <chrono>
 
 using std::vector;
 
@@ -38,6 +39,7 @@ void Dispatcher::LoadPartitionMerge(const PartitionResult& pr){
 }
 
 void Dispatcher::DispatchRequest(const vector<int> &input){
+    auto start = std::chrono::high_resolution_clock::now();
     int n = input.size();
     vector<int> partCnt(n_parts_);
     InferenceRequest request;
@@ -58,8 +60,9 @@ void Dispatcher::DispatchRequest(const vector<int> &input){
     for(int i = 0; i < n; i++){
         if((partition_bits[input[i]] >> target) & 1) request.set_pos(i,target);
     }
-    std::cout << "start inference on " << target << std::endl;
     stub_list_[target]->Inference(&context, request, &reply);
-    std::cout << "inference finished " << target << std::endl;
+    auto end = std::chrono::high_resolution_clock::now();
+    time_vec_.emplace_back(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count());
+    query_cnt_++;
     return;
 }
