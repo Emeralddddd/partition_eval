@@ -8,7 +8,7 @@ using std::vector;
 auto main() -> int
 {
     std::string server_address("0.0.0.0:50051");
-    vector<std::string> server_address_list= {server_address,server_address,server_address,server_address};
+    vector<std::string> server_address_list= {"49.52.27.23:50051","49.52.27.25:50051","49.52.27.26:50051","49.52.27.32:50051"};
     EmbedServerImpl embedService;
     InferServerImpl inferService(4, server_address_list);
     grpc::ServerBuilder builder;

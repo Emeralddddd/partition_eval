@@ -5,10 +5,11 @@
 using std::vector;
 
 const static std::string CRITEO_PATH = "/home/xuzhizhen/datasets/criteo-tb/";
+const static int sample_factor = 1000;
 
 auto main()->int{
     std::string server_address("0.0.0.0:50051");
-    vector<std::string> server_address_list= {"49.52.27.23:50051","49.52.27.25:50051","49.52.26.26:50051","49.52.27.32:50051"};
+    vector<std::string> server_address_list= {"49.52.27.23:50051","49.52.27.25:50051","49.52.27.26:50051","49.52.27.32:50051"};
     Dispatcher dispatcher(4, server_address_list);
     std::cout << "created dispatcher" << std::endl;
     dispatcher.LoadPartitionNPZ(CRITEO_PATH + "partition/merged/day0_80m.npz",0.001);
@@ -26,7 +27,16 @@ auto main()->int{
        105093113, 127007672, 129908815, 144023219, 147486485, 147755808,
        147761715, 147761809};
     dispatcher.DispatchRequest(input1);
-    dispatcher.DispatchRequest(input2);
+    dispatcher.clearTime();
+    for(int i = 20000000; i <= 80000000; i+=sample_factor){
+        auto currentInput = getCurrentInput(data,1,26,i);
+        dispatcher.DispatchRequest(currentInput);
+        if(i % 1000000 == 0){
+            std::cout << i << " " << dispatcher.getAvgTime() << std::endl;
+            dispatcher.clearTime();
+            // dispatcher.LoadPartitionNPZ(CRITEO_PATH + "partition/full_5/day0_"+ std::to_string(i/1000000) +"m.npz",0.001);
+        }
+    }
     std::cout << "all request finished " <<std::endl; 
     return 0;
 }

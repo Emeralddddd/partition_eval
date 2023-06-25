@@ -32,24 +32,27 @@ auto main() -> int
   std::vector<std::vector<int>> data;
   load_data(CRITEO_PATH + "sparse_day_0.npy", data);
   std::cout << "data loaded" << std::endl;
-  StaticPartition partitionHET(PART_NUMS,CRITEO_PATH + "partition/full/day0_1m.npz",HOT_RATE);
-  StaticPartition partitionMerge(PART_NUMS,CRITEO_PATH + "partition/full_5/day0_1m.npz",HOT_RATE);
-  Merger merger(PART_NUMS);
+  StaticPartition partitionHET(PART_NUMS);
+  StaticPartition partitionMerge(PART_NUMS);
+  partitionMerge.load_partition_from_npz(CRITEO_PATH + "partition/full_10/day0_"+ "20" +"m.npz",HOT_RATE);
+  // Merger merger(PART_NUMS);
   vector<double> cost;
   vector<double> mergeCost;
   std::cout << "partition test start" << std::endl;
   auto start_time = std::chrono::system_clock::now();
   auto t = std::chrono::system_clock::now();
-  std::unordered_set<int> ban_points = {22,23,24,26,27,28,31,32,33,34,36,39,42,43,51,56};
-  for(int i = 20000000; i < 80000000; i++){
+  std::unordered_set<int> ban_points = {22,27,28,30,36,37,42,43,50,67};
+  for(int i = 20000000; i <= 80000000; i++){
     if(i % 1000000 == 0){
       auto t0 = std::chrono::system_clock::now();
-      merger.update(CRITEO_PATH + "partition/new_5/day0_" + std::to_string(i/1000000) + "m.bin");
-      partitionMerge.load_partition_from_merger(merger.generatePartition(HOT_RATE));
+      // merger.update(CRITEO_PATH + "partition/new_5/day0_" + std::to_string(i/1000000) + "m.bin");
+      // partitionMerge.load_partition_from_merger(merger.generatePartition(HOT_RATE));
       auto t1 = std::chrono::system_clock::now();
       std::chrono::duration<double> elapsed_time = t1 - t0;
       std::cout << "Merge time : " << elapsed_time.count();
-      partitionHET.load_partition_from_npz(CRITEO_PATH + "partition/full_5/day0_"+ std::to_string(i/1000000) +"m.npz",HOT_RATE);
+      if(!ban_points.count(i / 1000000)){
+        partitionHET.load_partition_from_npz(CRITEO_PATH + "partition/full_10/day0_"+ std::to_string(i/1000000) +"m.npz",HOT_RATE);
+      }
     } 
     int bs = 1;
     int fieldSize = 26;
