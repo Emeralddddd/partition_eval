@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <fstream>
 #include <sstream>
+#include <cassert>
 #include "cnpy.h"
 
 #include "partition.hpp"
@@ -42,11 +43,15 @@ StaticPartition::StaticPartition(int n_parts, std::string path, double hot_rate)
     load_partition_from_npz(path, hot_rate);
 }
 
+StaticPartition::StaticPartition(int n_parts) : BasePartition(n_parts){
+
+}
+
 void StaticPartition::load_partition_from_npz(std::string path, double hot_rate){
     cnpy::npz_t partition = cnpy::npz_load(path);
     partition_ = partition["embed_partition"].as_vec<int>();
     query_partition_ = partition["data_partition"].as_vec<int>();
-    n_parts_ = partition.size() - 2;
+    assert(n_parts_ == partition.size() - 2);
     embed_cnt_.resize(n_parts_,0);
     access_cnt_.resize(n_parts_,0);
     max_id_ = partition_.size()-1;
@@ -70,7 +75,7 @@ void StaticPartition::load_partition_from_npz(std::string path, double hot_rate)
 
 void StaticPartition::load_partition_from_merger(const PartitionResult& pr){
     partition_ = pr.partition;
-    n_parts_ = pr.caches.size();
+    assert(n_parts_ == pr.caches.size();)
     embed_cnt_.resize(n_parts_,0);
     access_cnt_.resize(n_parts_,0);
     max_id_ = pr.partition.size()-1;

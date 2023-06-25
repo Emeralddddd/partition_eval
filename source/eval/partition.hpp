@@ -124,6 +124,7 @@ protected:
 class StaticPartition : public BasePartition{
 public:
     StaticPartition(int n_parts, std::string path, double hot_rate);
+    StaticPartition(int n_parts);
     void load_partition_from_npz(std::string path, double hot_rate);
     void load_partition_from_merger(const PartitionResult& pr);
     void load_query_partition(std::string path);
