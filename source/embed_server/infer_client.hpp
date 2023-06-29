@@ -5,6 +5,7 @@
 #include <cassert>
 #include <grpcpp/grpcpp.h>
 #include <numeric>
+#include <algorithm>
 
 class Dispatcher{
 public:
@@ -29,6 +30,12 @@ public:
     double getAvgTime(){
         long long sum = std::accumulate(time_vec_.begin(), time_vec_.end(), 0);
         return query_cnt_ > 0 ? sum/query_cnt_ : 0;
+    }
+    int getTailTime(){
+        size_t index = query_cnt_ * 0.95;
+        if (index == query_cnt_) index = query_cnt_ - 1;
+        std::nth_element(time_vec_.begin(),time_vec_.begin() + index,time_vec_.end());
+        return time_vec_[index];
     }
 
 private:

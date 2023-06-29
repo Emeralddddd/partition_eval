@@ -31,6 +31,7 @@ Status EmbedServerImpl::Lookup(grpc::ServerContext* context, const EmbedRequest*
     int dim = output[0].size();
     for(int i = 0; i < n; i++){
         SingleEmbed* se = reply->add_embed_values();
+        reply->add_pos(reply->pos(i));
         se->mutable_data() -> Reserve(dim);
         for(int j = 0; j < output.size(); j++){
             se -> add_data(output[i][j]);

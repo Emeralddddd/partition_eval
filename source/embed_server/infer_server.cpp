@@ -4,7 +4,7 @@
 using std::vector;
 using grpc::Status;
 
-InferServerImpl::InferServerImpl(int n_part,vector<std::string> ServerAddressList) : n_part_(n_part){
+InferServerImpl::InferServerImpl(int n_part, int rank,vector<std::string> ServerAddressList) : n_part_(n_part), rank_(rank){
     assert(n_part_ == ServerAddressList.size());
     for(int i = 0; i < n_part_; i++){
         auto channel = grpc::CreateChannel(ServerAddressList[i], grpc::InsecureChannelCredentials());
@@ -12,7 +12,7 @@ InferServerImpl::InferServerImpl(int n_part,vector<std::string> ServerAddressLis
     }
 }
 
-grpc::Status InferServerImpl::Inference(grpc::ServerContext* context, const InferenceRequest* request, InferenceReply* reply){
+Status InferServerImpl::Inference(grpc::ServerContext* context, const InferenceRequest* request, InferenceReply* reply){
     if(request->data_size() != request->pos_size()) return Status::OK;
     int n = request -> data_size();
     vector<EmbedRequest> request_list(n_part_);
@@ -22,9 +22,9 @@ grpc::Status InferServerImpl::Inference(grpc::ServerContext* context, const Infe
         // std::cout << i << " " << request->pos(i) << " " << request->data(i) << std::endl;
         request_list[request->pos(i)].add_data(request->data(i));
     }
-    std::cout << "starting preparing" << std::endl;
     int all_calls = 0;
     for(int i = 0; i < n_part_; i++){
+        if(i == rank_) continue;
         if(request_list[i].data_size() > 0){
             call_list[i].response_reader = stub_list_[i]->PrepareAsyncLookup(&call_list[i].context, request_list[i], &cq_);
             call_list[i].response_reader->StartCall();
@@ -52,6 +52,32 @@ grpc::Status InferServerImpl::Inference(grpc::ServerContext* context, const Infe
                 abort();
             }
             ++completed_calls;
+        }
+    }
+    for(int i = 0; i < n; i++){
+        reply->add_data(request->data(i));
+    }
+    return Status::OK;
+}
+
+InferServerSyncImpl::InferServerSyncImpl(int n_part, int rank,vector<std::string> ServerAddressList) : n_part_(n_part), rank_(rank){
+    assert(n_part_ == ServerAddressList.size());
+    for(int i = 0; i < n_part_; i++){
+        auto channel = grpc::CreateChannel(ServerAddressList[i], grpc::InsecureChannelCredentials());
+        stub_list_.emplace_back(EmbedServer::NewStub(channel));
+    }
+}
+
+Status InferServerSyncImpl::Inference(grpc::ServerContext* context, const InferenceRequest* request, InferenceReply* reply){
+    if(request->data_size() != request->pos_size()) return Status::OK;
+    int n = request -> data_size();
+    vector<EmbedRequest> request_list(n_part_);
+    vector<EmbedReply> reply_list(n_part_);
+    grpc::ClientContext client_context;
+    for(int i = 0; i < n_part_; i++){
+        if(i == rank_) continue;
+        if(request_list[i].data_size() > 0){
+            stub_list_[i] -> Lookup(&client_context, request_list[i], &reply_list[i]);
         }
     }
     for(int i = 0; i < n; i++){

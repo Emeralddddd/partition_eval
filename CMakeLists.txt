@@ -15,6 +15,7 @@ include(cmake/variables.cmake)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # ---- Declare library ----
+include_directories(${CMAKE_SOURCE_DIR}/source/external/include/)
 include_directories(${CMAKE_BINARY_DIR}/_deps/cnpy-src)
 link_directories(${CMAKE_BINARY_DIR}/_deps/cnpy-build)
 include_directories(/usr/local/include)

@@ -29,4 +29,4 @@ add_executable(embed_client_exe client_main.cpp)
 set_property(TARGET embed_client_exe PROPERTY OUTPUT_NAME embed_client)
 
 target_link_libraries(embed_server_exe embed_server_lib)
-target_link_libraries(embed_client_exe embed_server_lib utils_lib)
+target_link_libraries(embed_client_exe embed_server_lib utils_lib OpenMP::OpenMP_CXX)
