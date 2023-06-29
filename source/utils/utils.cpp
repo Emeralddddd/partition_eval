@@ -20,7 +20,7 @@ void load_data(std::string path, vector<vector<int>> &data){
   std::cout<<"load time: " << time1 << " copy time: "<< time2 << std::endl;
 }
 
-vector<int> getCurrentInput(vector<vector<int>> &data, int bs, int fs, int i){
+vector<int> getCurrentInput(const vector<vector<int>> &data, int bs, int fs, int i){
     vector<int> currentInput;
     currentInput.reserve(bs * fs);
     for (int j = 0; j < bs; j++)
