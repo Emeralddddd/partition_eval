@@ -19,7 +19,8 @@ target_include_directories(embed_server_lib PUBLIC
   ${CMAKE_CURRENT_BINARY_DIR}
   ${grpc_SOURCE_DIR}/include 
   ${grpc_SOURCE_DIR}/third_party/abseil-cpp
-  ${grpc_SOURCE_DIR}/third_party/protobuf/src)
+  ${grpc_SOURCE_DIR}/third_party/protobuf/src
+  ${CMAKE_CURRENT_BINARY_DIR}/../merge)
 target_link_libraries(embed_server_lib PRIVATE OpenMP::OpenMP_CXX grpc++ libcnpy.a)
 
 add_executable(embed_server_exe main.cpp)
@@ -28,5 +29,6 @@ set_property(TARGET embed_server_exe PROPERTY OUTPUT_NAME embed_server)
 add_executable(embed_client_exe client_main.cpp)
 set_property(TARGET embed_client_exe PROPERTY OUTPUT_NAME embed_client)
 
+
 target_link_libraries(embed_server_exe embed_server_lib)
-target_link_libraries(embed_client_exe embed_server_lib utils_lib OpenMP::OpenMP_CXX)
+target_link_libraries(embed_client_exe embed_server_lib utils_lib merge_lib OpenMP::OpenMP_CXX)

@@ -30,6 +30,15 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(cnpy)
 
+set(ABSL_ENABLE_INSTALL ON)
+FetchContent_Declare(
+  gRPC
+  GIT_REPOSITORY https://github.com/grpc/grpc
+  GIT_TAG        v1.56.0  # e.g v1.28.0
+)
+set(FETCHCONTENT_QUIET OFF)
+FetchContent_MakeAvailable(gRPC)
+
 # set(cnpy_static  ${CMAKE_BINARY_DIR}/_deps/cnpy_build)
 
 add_subdirectory(source/merge)
