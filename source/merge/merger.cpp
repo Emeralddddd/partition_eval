@@ -66,6 +66,13 @@ void Merger::update(const std::string &path){
     addPartition(pr);
 }
 
+void Merger::updateDirect(const std::string &path){
+    PartialResult pr;
+    load_partial_result(path,pr);
+    assert(pr.priority_maps().size() == n_parts_);
+    addDirectPartition(pr);
+}
+
 void Merger::addPartition(const PartialResult& pr){
     for(const auto &kv : pr.partition_map()){
         int key = kv.first;
@@ -73,6 +80,28 @@ void Merger::addPartition(const PartialResult& pr){
         if(key >= n_embeds_) resize(key + 1);
         if(value >= 0){
             ++weights_[key][value];
+        }
+    }
+    for (int i = 0; i < n_parts_; ++i) {
+        const auto& pm = pr.priority_maps(i);
+        for (const auto& kv : pm.map_field()) {
+            int key = kv.first;
+            float value = kv.second;
+            if(key >= n_embeds_) resize(key + 1);
+            if(value > 0){
+                priority_[i][key] += value;
+            }
+        }
+    }
+}
+
+void Merger::addDirectPartition(const PartialResult& pr){
+    for(const auto &kv : pr.partition_map()){
+        int key = kv.first;
+        int value = kv.second;
+        if(key >= n_embeds_) resize(key + 1);
+        for(int i = 0; i < n_parts_; i++){
+            weights_[key][value] = value==i?1:0;
         }
     }
     for (int i = 0; i < n_parts_; ++i) {
@@ -153,4 +182,41 @@ void Merger::savePartitionToNpz(const std::string &path){
     }
     cnpy::npz_save(path,"data_partition",&pr_.partition[0],{1},"a");
     return;
+}
+
+void NaiveMerger::resize(int n_embeds){
+    n_embeds_ = n_embeds;
+    pr_.partition.resize(n_embeds_,-1);
+    partition_.resize(n_embeds_,-1);
+}
+
+void NaiveMerger::update(const std::string &path){
+    PartialResult pr;
+    load_partial_result(path,pr);
+    assert(pr.priority_maps().size() == n_parts_);
+    for(const auto &kv : pr.partition_map()){
+        int key = kv.first;
+        int value = kv.second;
+        if(key >= n_embeds_) resize(key + 1);
+        partition_[key] = value;
+    }
+    for (int i = 0; i < n_parts_; ++i) {
+        const auto& pm = pr.priority_maps(i);
+        int n = pm.map_field_size();
+        caches_[i].clear();
+        caches_[i].reserve(n);
+        for (const auto& kv : pm.map_field()) {
+            int key = kv.first;
+            float value = kv.second;
+            caches_[i].push_back(key);
+        }
+    }
+}
+
+PartitionResult NaiveMerger::generatePartition(double hot_rate){
+    pr_.partition = partition_;
+    for(int i = 0; i < n_parts_; i++){
+        pr_.caches[i] = caches_[i]; 
+    }
+    return pr_;
 }
