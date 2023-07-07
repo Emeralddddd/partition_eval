@@ -5,7 +5,7 @@ using grpc::Status;
 using std::vector;
 
 constexpr static int default_embed_size = std::numeric_limits<int>::max();
-constexpr static int default_embed_dim = 1024;
+constexpr static int default_embed_dim = 16;
 
 std::unique_ptr<BaseInnerEmbedding> EmbeddingServerFactory::createEmbedding(const std::string& type, int embed_size, int embed_dim){
     if (type == "random") {
@@ -20,6 +20,7 @@ EmbedServerImpl::EmbedServerImpl(const std::string& embed_type, int embed_size, 
  : inner_embed(EmbeddingServerFactory::createEmbedding(embed_type, embed_size, embed_dim)){}
 
 Status EmbedServerImpl::Lookup(grpc::ServerContext* context, const EmbedRequest* request, EmbedReply* reply){
+    // auto start = std::chrono::high_resolution_clock::now();
     int n = request->data_size();
     vector<int> input(n);
     vector<vector<float>> output;
@@ -31,12 +32,14 @@ Status EmbedServerImpl::Lookup(grpc::ServerContext* context, const EmbedRequest*
     int dim = output[0].size();
     for(int i = 0; i < n; i++){
         SingleEmbed* se = reply->add_embed_values();
-        reply->add_pos(reply->pos(i));
+        reply->add_pos(request->pos(i));
         se->mutable_data() -> Reserve(dim);
-        for(int j = 0; j < output.size(); j++){
+        for(int j = 0; j < dim; j++){
             se -> add_data(output[i][j]);
         }
     }
+    // auto end = std::chrono::high_resolution_clock::now();
+    // std::cout << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
     return Status::OK;
 }
 

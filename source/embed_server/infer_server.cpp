@@ -1,5 +1,6 @@
 #include "infer_server.hpp"
 #include <cassert>
+#include <chrono>
 
 using std::vector;
 using grpc::Status;
@@ -69,15 +70,27 @@ InferServerSyncImpl::InferServerSyncImpl(int n_part, int rank,vector<std::string
 }
 
 Status InferServerSyncImpl::Inference(grpc::ServerContext* context, const InferenceRequest* request, InferenceReply* reply){
-    if(request->data_size() != request->pos_size()) return Status::OK;
+    if(request->data_size() != request->pos_size()){
+        std::cout << "pos size " << request->pos_size() << " data size " << request->data_size() << std::endl;
+        return Status::OK;
+    } 
     int n = request -> data_size();
     vector<EmbedRequest> request_list(n_part_);
     vector<EmbedReply> reply_list(n_part_);
-    grpc::ClientContext client_context;
+    for(int i = 0; i < n ; i++){
+        if(i == rank_) continue;
+        int target = request->pos(i);
+        request_list[target].add_data(request->data(i));
+        request_list[target].add_pos(i);
+    }
     for(int i = 0; i < n_part_; i++){
         if(i == rank_) continue;
+        grpc::ClientContext client_context;
         if(request_list[i].data_size() > 0){
+            // auto start = std::chrono::high_resolution_clock::now();
             stub_list_[i] -> Lookup(&client_context, request_list[i], &reply_list[i]);
+            // auto end = std::chrono::high_resolution_clock::now();
+            // std::cout << i << " " << request_list[i].data_size() << " " <<std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() << std::endl;
         }
     }
     for(int i = 0; i < n; i++){

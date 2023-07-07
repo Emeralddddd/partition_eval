@@ -18,28 +18,34 @@ public:
     }
     void resize(int n_embeds){
         n_embeds_ = n_embeds;
-        partition_.resize(n_embeds_);
+        partition_.resize(n_embeds_, -1);
+        std::cout << "resize to " << n_embeds_ << std::endl;
     }
     void LoadPartitionNPZ(std::string path, double hr);
     void LoadPartitionMerge(const PartitionResult& pr);
     void DispatchRequest(const std::vector<int> &input);
     void clearTime(){
         time_vec_.clear();
-        query_cnt_ = 0;
+        remoteCnt_ = 0;
     }
     double getAvgTime(){
+        int query_cnt_ = time_vec_.size();
         long long sum = std::accumulate(time_vec_.begin(), time_vec_.end(), 0);
         return query_cnt_ > 0 ? sum/query_cnt_ : 0;
     }
     int getTailTime(){
+        int query_cnt_ = time_vec_.size();
         size_t index = query_cnt_ * 0.95;
         if (index == query_cnt_) index = query_cnt_ - 1;
         std::nth_element(time_vec_.begin(),time_vec_.begin() + index,time_vec_.end());
         return time_vec_[index];
     }
+    int getRemoteCount(){
+        return remoteCnt_;
+    }
 
 private:
-    int n_embeds_, n_parts_, query_cnt_ = 0;
+    int n_embeds_, n_parts_ = 0, remoteCnt_ = 0;
     std::vector<int> partition_;
     std::vector<std::unordered_set<int>> caches_;
     std::vector<std::unique_ptr<InferenceServer::Stub>> stub_list_;
