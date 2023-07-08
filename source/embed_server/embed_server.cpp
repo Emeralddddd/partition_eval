@@ -5,7 +5,7 @@ using grpc::Status;
 using std::vector;
 
 constexpr static int default_embed_size = std::numeric_limits<int>::max();
-constexpr static int default_embed_dim = 16;
+constexpr static int default_embed_dim = 1024;
 
 std::unique_ptr<BaseInnerEmbedding> EmbeddingServerFactory::createEmbedding(const std::string& type, int embed_size, int embed_dim){
     if (type == "random") {
@@ -15,6 +15,8 @@ std::unique_ptr<BaseInnerEmbedding> EmbeddingServerFactory::createEmbedding(cons
 }
 
 EmbedServerImpl::EmbedServerImpl() : EmbedServerImpl("random",default_embed_size,default_embed_dim){}
+
+EmbedServerImpl::EmbedServerImpl(int embed_dim) : EmbedServerImpl("random",default_embed_size,embed_dim){}
 
 EmbedServerImpl::EmbedServerImpl(const std::string& embed_type, int embed_size, int embed_dim)
  : inner_embed(EmbeddingServerFactory::createEmbedding(embed_type, embed_size, embed_dim)){}

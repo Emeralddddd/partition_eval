@@ -7,6 +7,7 @@
 class EmbedServerImpl final : public EmbedServer::Service{
 public:
     EmbedServerImpl(const std::string& type, int embed_size, int embed_dim);
+    EmbedServerImpl(int embed_dim);
     EmbedServerImpl();
     grpc::Status Lookup(grpc::ServerContext* context, const EmbedRequest* request, EmbedReply* reply) override;
 private:
