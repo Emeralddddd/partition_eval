@@ -51,6 +51,7 @@ public:
 class StaticCache : public BaseCache{
 public:
     StaticCache(const std::vector<std::vector<int>> &priorList, double hotRate);
+    StaticCache(const std::vector<std::vector<long long>> &priorList, double hotRate);
     std::vector<int> query(const std::vector<int> &data, int part);
     void update(const std::vector<int> &data, int part){}
 private:

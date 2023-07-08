@@ -63,8 +63,8 @@ void StaticPartition::load_partition_from_npz(std::string path, double hot_rate)
     }
     std::cout << hot_rate << std::endl;
     if(hot_rate > 1e-6){
-        vector<vector<int>> priorList(n_parts_);
-        for(int i = 0; i < n_parts_; i++) priorList[i] = partition[std::to_string(i)].as_vec<int>();
+        vector<vector<long long>> priorList(n_parts_);
+        for(int i = 0; i < n_parts_; i++) priorList[i] = partition[std::to_string(i)].as_vec<long long>();
         cache_ = std::make_unique<StaticCache>(priorList, hot_rate);
     }else{
         cache_ = std::make_unique<EmptyCache>();
@@ -341,6 +341,15 @@ unordered_set<int> MisraGries::getFrequentItems() {
 }
 
 StaticCache::StaticCache(const vector<vector<int>> &priorList, double hotRate){
+    n_parts_ = priorList.size();
+    size_ = priorList[0].size() * hotRate;
+    data_.resize(n_parts_);
+    for(int i = 0; i < n_parts_; i++){
+        data_[i] = unordered_set<int>(priorList[i].begin(),priorList[i].begin() + size_);
+    }
+}
+
+StaticCache::StaticCache(const vector<vector<long long>> &priorList, double hotRate){
     n_parts_ = priorList.size();
     size_ = priorList[0].size() * hotRate;
     data_.resize(n_parts_);
