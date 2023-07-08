@@ -2,6 +2,7 @@
 #include "inference_request.pb.h"
 #include "inference_request.grpc.pb.h"
 #include "../merge/merger.hpp"
+#include "../utils/utils.hpp"
 #include <cassert>
 #include <grpcpp/grpcpp.h>
 #include <numeric>
@@ -11,6 +12,10 @@ class Dispatcher{
 public:
     Dispatcher(int n_parts, std::vector<std::string> ServerAddressList) : n_parts_(n_parts){
         assert(ServerAddressList.size() == n_parts_);
+        caches_.resize(n_parts_);
+        remote_time_vecs.resize(n_parts_,std::vector<std::vector<int>>(n_parts_));
+        remote_data_cnt.resize(n_parts_,std::vector<int>(n_parts_));
+        remote_request_cnt.resize(n_parts_,std::vector<int>(n_parts_));
         for(int i = 0; i < n_parts_; i++){
             auto channel = grpc::CreateChannel(ServerAddressList[i], grpc::InsecureChannelCredentials());
             stub_list_.emplace_back(InferenceServer::NewStub(channel));
@@ -22,32 +27,49 @@ public:
         std::cout << "resize to " << n_embeds_ << std::endl;
     }
     void LoadPartitionNPZ(std::string path, double hr);
-    void LoadPartitionMerge(const PartitionResult& pr);
+    void LoadPartitionMerge(PartitionResult&& pr);
     void DispatchRequest(const std::vector<int> &input);
     void clearTime(){
         time_vec_.clear();
         remoteCnt_ = 0;
+        nodeCnt_ = 0;
+        for(int i = 0; i < n_parts_;i++){
+            for(auto v : remote_time_vecs[i]) v.clear();
+            remote_data_cnt[i].clear();
+            remote_request_cnt[i].clear();
+        }
     }
     double getAvgTime(){
-        int query_cnt_ = time_vec_.size();
-        long long sum = std::accumulate(time_vec_.begin(), time_vec_.end(), 0);
-        return query_cnt_ > 0 ? sum/query_cnt_ : 0;
+        return calculateAverage(time_vec_);
     }
     int getTailTime(){
-        int query_cnt_ = time_vec_.size();
-        size_t index = query_cnt_ * 0.95;
-        if (index == query_cnt_) index = query_cnt_ - 1;
-        std::nth_element(time_vec_.begin(),time_vec_.begin() + index,time_vec_.end());
-        return time_vec_[index];
+        return calculatePercentile(time_vec_, 0.99);
     }
     int getRemoteCount(){
         return remoteCnt_;
     }
+    int getNodeCount(){
+        return nodeCnt_;
+    }
+    void getDebugInfo(){
+        std::cout << "Debug Info :" << std::endl;
+        for(int i = 0; i < n_parts_; i++){
+            for(int j = 0; j < n_parts_; j++){
+                double avg_time = calculateAverage(remote_time_vecs[i][j]);
+                double p95_time = calculatePercentile(remote_time_vecs[i][j], .99);
+                std::cout << i << "->" <<j << " " <<remote_data_cnt[i][j] << " " \
+                    << remote_request_cnt[i][j] << " " << avg_time << " " << p95_time << std::endl;
+            }
+        }
+    }
 
 private:
-    int n_embeds_, n_parts_ = 0, remoteCnt_ = 0;
+    int n_embeds_, n_parts_ = 0, remoteCnt_ = 0, nodeCnt_ = 0;
     std::vector<int> partition_;
     std::vector<std::unordered_set<int>> caches_;
     std::vector<std::unique_ptr<InferenceServer::Stub>> stub_list_;
     std::vector<int> time_vec_;
+    std::vector<std::vector<std::vector<int>>> remote_time_vecs;
+    std::vector<std::vector<int>> remote_data_cnt;
+    std::vector<std::vector<int>> remote_request_cnt;
 };

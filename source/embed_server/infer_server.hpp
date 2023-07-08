@@ -4,6 +4,7 @@
 #include "inference_request.grpc.pb.h"
 #include "embed_server.pb.h"
 #include "embed_server.grpc.pb.h"
+#include <mutex>
 
 class InferServerImpl final : public InferenceServer::Service{
 public:

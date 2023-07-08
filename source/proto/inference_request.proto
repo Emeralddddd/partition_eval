@@ -1,5 +1,7 @@
 syntax = "proto3";
-
+message DebugInfo{
+    map<int32, int32> remote_time = 1;
+}
 message InferenceRequest{
     repeated int32 data = 1;
     repeated int32 pos = 2;
@@ -7,6 +9,7 @@ message InferenceRequest{
 
 message InferenceReply{
     repeated int32 data = 1;
+    DebugInfo info = 2;
 }
 
 service InferenceServer{

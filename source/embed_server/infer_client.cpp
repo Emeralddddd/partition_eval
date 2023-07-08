@@ -10,7 +10,6 @@ void Dispatcher::LoadPartitionNPZ(std::string path, double hot_rate){
     int n = embed_partition.size();
     if(n > n_embeds_) resize(n);
     partition_ = std::move(embed_partition);
-    caches_ =  vector<unordered_set<int>>(4);
     if(hot_rate < 1e-6) return;
     int hot_size = hot_rate * n_embeds_;
     for(int i = 0; i < n_parts_; i++){
@@ -19,13 +18,10 @@ void Dispatcher::LoadPartitionNPZ(std::string path, double hot_rate){
     }
 }
 
-void Dispatcher::LoadPartitionMerge(const PartitionResult& pr){
+void Dispatcher::LoadPartitionMerge(PartitionResult&& pr){
     int n = pr.partition.size();
     if(n > n_embeds_) resize(n);
-    caches_ =  vector<unordered_set<int>>(4);
-    for(int i = 0; i < n; i++){
-       partition_ = pr.partition;
-    }
+    partition_ = std::move(pr.partition);
     for(int i = 0; i < n_parts_; i++){
         caches_[i] = unordered_set<int>(pr.caches[i].begin(),pr.caches[i].end());
     }
@@ -50,9 +46,10 @@ void Dispatcher::DispatchRequest(const vector<int> &input){
         }
     }
     int target = std::min_element(partCnt.begin(),partCnt.end()) - partCnt.begin();
+    vector<bool> nodeIsAccess(n_parts_);
     for(int i = 0; i < n; i++){
         if(caches_[target].count(input[i])) request.set_pos(i,target);
-        if(request.pos(i) != target) remoteCnt_++;
+
     }
     auto start = std::chrono::high_resolution_clock::now();
     stub_list_[target]->Inference(&context, request, &reply);
@@ -60,6 +57,20 @@ void Dispatcher::DispatchRequest(const vector<int> &input){
     #pragma omp critical
     {
         time_vec_.emplace_back(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count());
+        auto & time_map = reply.info().remote_time();
+        for(int i = 0; i < n; i++){
+            if(request.pos(i) != target) remoteCnt_++;
+            remote_data_cnt[target][request.pos(i)]++;
+            if(!nodeIsAccess[request.pos(i)]) nodeIsAccess[request.pos(i)] = true;
+        }
+        for(int i = 0; i < n_parts_; i++){
+            if(nodeIsAccess[i]){
+                nodeCnt_++;
+                remote_request_cnt[target][i]++;
+            }
+            remote_time_vecs[target][i].emplace_back(time_map.at(i));
+        }
+        nodeCnt_--;
     }
     return;
 }
