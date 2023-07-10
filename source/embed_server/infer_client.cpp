@@ -51,12 +51,14 @@ void Dispatcher::DispatchRequest(const vector<int> &input){
         if(caches_[target].count(input[i])) request.set_pos(i,target);
 
     }
-    auto start = std::chrono::high_resolution_clock::now();
-    stub_list_[target]->Inference(&context, request, &reply);
-    auto end = std::chrono::high_resolution_clock::now();
+    grpc::Status status = stub_list_[target]->Inference(&context, request, &reply);
+    if(!status.ok()){
+        std::cout << "Request failed. Error message: " << status.error_message() << std::endl;
+        return;
+    }
     #pragma omp critical
     {
-        time_vec_.emplace_back(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count());
+        time_vec_.emplace_back(reply.time());
         auto & time_map = reply.info().remote_time();
         for(int i = 0; i < n; i++){
             if(request.pos(i) != target) remoteCnt_++;
@@ -68,7 +70,13 @@ void Dispatcher::DispatchRequest(const vector<int> &input){
                 nodeCnt_++;
                 remote_request_cnt[target][i]++;
             }
-            remote_time_vecs[target][i].emplace_back(time_map.at(i));
+            if(auto it = time_map.find(i); it != time_map.end()){
+                remote_time_vecs[target][i].emplace_back(it->second);
+            }else{
+                std::cout << "request from " << target << " miss key " << i << std::endl;
+                std::cout << " --------- " << std::endl;
+            }
+            
         }
         nodeCnt_--;
     }

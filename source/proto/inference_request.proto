@@ -10,6 +10,7 @@ message InferenceRequest{
 message InferenceReply{
     repeated int32 data = 1;
     DebugInfo info = 2;
+    int32 time = 3;
 }
 
 service InferenceServer{

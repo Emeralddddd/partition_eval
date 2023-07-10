@@ -74,6 +74,7 @@ Status InferServerSyncImpl::Inference(grpc::ServerContext* context, const Infere
         std::cout << "pos size " << request->pos_size() << " data size " << request->data_size() << std::endl;
         return Status::OK;
     } 
+    auto start = std::chrono::high_resolution_clock::now();
     int n = request -> data_size();
     vector<EmbedRequest> request_list(n_part_);
     vector<EmbedReply> reply_list(n_part_);
@@ -86,17 +87,19 @@ Status InferServerSyncImpl::Inference(grpc::ServerContext* context, const Infere
         request_list[target].add_pos(i);
     }
     for(int i = 0; i < n_part_; i++){
-        auto start = std::chrono::high_resolution_clock::now();
+        auto t1 = std::chrono::high_resolution_clock::now();
         if(i != rank_ && request_list[i].data_size() > 0){   
             grpc::ClientContext client_context;
             stub_list_[i] -> Lookup(&client_context, request_list[i], &reply_list[i]);
         }
-        auto end = std::chrono::high_resolution_clock::now();
-        auto time = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+        auto t2 = std::chrono::high_resolution_clock::now();
+        auto time = std::chrono::duration_cast<std::chrono::microseconds>(t2 - t1).count();
         info->mutable_remote_time()->insert({i,time});
     }
+    auto end = std::chrono::high_resolution_clock::now();
     for(int i = 0; i < n; i++){
         reply->add_data(request->data(i));
     }
+    reply->set_time(std::chrono::duration_cast<std::chrono::microseconds>(end - start).count());
     return Status::OK;
 }
