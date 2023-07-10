@@ -9,11 +9,11 @@ using std::vector;
 
 const static std::string CRITEO_PATH = "/home/xuzhizhen/datasets/criteo-tb/";
 constexpr static int sample_factor = 10;
-constexpr static int num_threads = 1;
+constexpr static int num_threads = 16;
 constexpr static double hot_rate = 0.001;
+const static vector<std::string> server_address_list = {"49.52.27.23:50051","49.52.27.25:50051","49.52.27.26:50051","49.52.27.27:50051"};
 
 void simpleTest(){
-    vector<std::string> server_address_list= {"49.52.27.23:50051","49.52.27.25:50051","49.52.27.26:50051","49.52.27.32:50051"};
     Dispatcher dispatcher(4, server_address_list);
     dispatcher.LoadPartitionNPZ(CRITEO_PATH + "partition/window_10/day0_20m.npz",hot_rate);
     vector<int> input1 = {81025217,  92483388,  92497334,  92506222,  92513787,  92529243,
@@ -32,8 +32,16 @@ void simpleTest(){
 }
 
 void runExperiment(){
-    std::string server_address("0.0.0.0:50051");
-    vector<std::string> server_address_list= {"49.52.27.23:50051","49.52.27.25:50051","49.52.27.26:50051","49.52.27.32:50051"};
+    const std::string filename = "results/latency.csv";
+    std::ofstream outfile(filename.c_str());
+    if(!outfile.is_open()){
+        outfile.open(filename.c_str(), std::ios::out);
+        if (!outfile) {
+            std::cout << "Error: failed to create file " << filename << std::endl;
+            return ;
+        }
+    }
+    outfile <<"bias p95 avg data node p95 avg data node" << std::endl;
     Dispatcher dispatcher(4, server_address_list);
     Dispatcher dispatcher1(4, server_address_list);
     std::cout << "created dispatcher" << std::endl;
@@ -51,9 +59,9 @@ void runExperiment(){
     dispatcher1.clearTime();
     std::cout << "test start" << std::endl;
     for(int k = 20; k <= 120; k++){
-        merger.update(CRITEO_PATH + "partition/new_10/day0_" + std::to_string(k) + "m.bin");
-        dispatcher.LoadPartitionMerge(merger.generatePartition(0.001));
-        // dispatcher.LoadPartitionNPZ(CRITEO_PATH + "partition/window_10/day0_"+ std::to_string(k) +"m.npz",hot_rate);
+        // merger.update(CRITEO_PATH + "partition/new_10/day0_" + std::to_string(k) + "m.bin");
+        // dispatcher.LoadPartitionMerge(merger.generatePartition(hot_rate));
+        dispatcher.LoadPartitionNPZ(CRITEO_PATH + "partition/window_10/day0_"+ std::to_string(k) +"m.npz",hot_rate);
         // int bias = k * 1000000;
         int bias = k * 1000000;
         #pragma omp parallel for num_threads(num_threads)
@@ -70,8 +78,12 @@ void runExperiment(){
         std::cout << " " << dispatcher.getTailTime()<< " " << dispatcher.getAvgTime() << " " << dispatcher.getRemoteCount() << " " << dispatcher.getNodeCount();
         std::cout << " " << dispatcher1.getTailTime() << " " << dispatcher1.getAvgTime() << " " << dispatcher1.getRemoteCount() << " " << dispatcher1.getNodeCount();
         std::cout << std::endl;
-        dispatcher.getDebugInfo();
-        dispatcher1.getDebugInfo();
+        outfile << bias;
+        outfile << "," << dispatcher.getTailTime()<< "," << dispatcher.getAvgTime() << "," << dispatcher.getRemoteCount() << "," << dispatcher.getNodeCount();
+        outfile << "," << dispatcher1.getTailTime() << "," << dispatcher1.getAvgTime() << "," << dispatcher1.getRemoteCount() << "," << dispatcher1.getNodeCount();
+        outfile << std::endl;
+        // dispatcher.getDebugInfo();
+        // dispatcher1.getDebugInfo();
         dispatcher.clearTime();
         dispatcher1.clearTime();
     }

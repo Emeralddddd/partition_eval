@@ -3,7 +3,7 @@ SCRIPT_DIR="$(dirname "$0")"
 cd "$SCRIPT_DIR/.."
 
 # 定义服务器地址列表
-servers=("49.52.27.23" "49.52.27.25" "49.52.27.26" "49.52.27.32")
+servers=("49.52.27.23" "49.52.27.25" "49.52.27.26" "49.52.27.27")
 
 operation=$1
 if [ "$operation" != "sync" ] && [ "$operation" != "start" ] && [ "$operation" != "stop" ]; then

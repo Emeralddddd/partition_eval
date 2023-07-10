@@ -20,7 +20,7 @@ auto main(int argc, char** argv) -> int
     }
 
     std::string server_address("0.0.0.0:50051");
-    vector<std::string> server_address_list= {"49.52.27.23:50051","49.52.27.25:50051","49.52.27.26:50051","49.52.27.32:50051"};
+    vector<std::string> server_address_list= {"49.52.27.23:50051","49.52.27.25:50051","49.52.27.26:50051","49.52.27.27:50051"};
     EmbedServerImpl embedService(embed_dim);
     std::cout << "embedService dim " << embed_dim << std::endl; 
     InferServerSyncImpl inferService(4, rank, server_address_list);
