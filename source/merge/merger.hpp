@@ -32,12 +32,10 @@ public:
     void init(const std::string& path);
 
     void update(const std::string &path) override;
-    void updateDirect(const std::string &path);
 
     void addPartition(const std::vector<int>& new_partition, \
     const std::vector<std::vector<double>>& new_priority);
     void addPartition(const PartialResult& pr);
-    void addDirectPartition(const PartialResult& pr);
     void resize(int n_embeds);
 
     PartitionResult generatePartition(double hot_rate) override;
@@ -54,7 +52,9 @@ class NaiveMerger : public BaseMerger{
 public:
     NaiveMerger(int n_parts) : BaseMerger(n_parts) {
         caches_.resize(n_parts);
+        weights_.resize(1, std::vector<int>(n_parts_));
         pr_.caches.resize(n_parts);
+        priority_.resize(n_parts);
         partition_.resize(1,-1);
     }
     void update(const std::string &path) override;
@@ -63,6 +63,8 @@ public:
     void resize(int n_embeds);
 private:
     std::vector<int> partition_;
+    std::vector<std::vector<int>> weights_;
+    std::vector<std::vector<double>> priority_;
     std::vector<std::vector<int>> caches_;
 };
 

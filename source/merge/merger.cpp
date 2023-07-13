@@ -66,13 +66,6 @@ void Merger::update(const std::string &path){
     addPartition(pr);
 }
 
-void Merger::updateDirect(const std::string &path){
-    PartialResult pr;
-    load_partial_result(path,pr);
-    assert(pr.priority_maps().size() == n_parts_);
-    addDirectPartition(pr);
-}
-
 void Merger::addPartition(const PartialResult& pr){
     for(const auto &kv : pr.partition_map()){
         int key = kv.first;
@@ -80,28 +73,6 @@ void Merger::addPartition(const PartialResult& pr){
         if(key >= n_embeds_) resize(key + 1);
         if(value >= 0){
             ++weights_[key][value];
-        }
-    }
-    for (int i = 0; i < n_parts_; ++i) {
-        const auto& pm = pr.priority_maps(i);
-        for (const auto& kv : pm.map_field()) {
-            int key = kv.first;
-            float value = kv.second;
-            if(key >= n_embeds_) resize(key + 1);
-            if(value > 0){
-                priority_[i][key] += value;
-            }
-        }
-    }
-}
-
-void Merger::addDirectPartition(const PartialResult& pr){
-    for(const auto &kv : pr.partition_map()){
-        int key = kv.first;
-        int value = kv.second;
-        if(key >= n_embeds_) resize(key + 1);
-        for(int i = 0; i < n_parts_; i++){
-            weights_[key][value] = value==i?1:0;
         }
     }
     for (int i = 0; i < n_parts_; ++i) {
@@ -154,18 +125,15 @@ PartitionResult Merger::generatePartition(double hot_rate){
 
     #pragma omp parallel for num_threads(4)
     for(int i = 0; i < n_parts_; i++){
-        std::priority_queue<std::pair<double,int>, std::vector<std::pair<double,int>>, std::greater<std::pair<double,int>>> minHeap;
-        for(int j = 0; j < n_embeds_; j++){
+        vector<std::pair<double,int>> copy;
+        copy.reserve(n_embeds_);
+        for(int j = 0; j < n_embeds_;j++){
             if(priority_[i][j] <= 0 || pr_.partition[j] == i) continue;
-            if(minHeap.size() < hot_length) minHeap.emplace(priority_[i][j],j);
-            else if(minHeap.top().first < priority_[i][j]){
-                minHeap.pop();
-                minHeap.emplace(priority_[i][j],j);
-            }
+            copy.emplace_back(-priority_[i][j], j);
         }
-        for(int j = 0; j < hot_length && !minHeap.empty(); j++){
-            pr_.caches[i][j] = minHeap.top().second;
-            minHeap.pop();
+        std::nth_element(copy.begin(), copy.begin() + hot_length, copy.end());
+        for(int j = 0; j < hot_length; j++){
+            pr_.caches[i][j] = copy[j].second;
         }
     }
     return pr_;
@@ -188,6 +156,10 @@ void NaiveMerger::resize(int n_embeds){
     n_embeds_ = n_embeds;
     pr_.partition.resize(n_embeds_,-1);
     partition_.resize(n_embeds_,-1);
+    weights_.resize(n_embeds_, vector<int>(n_parts_));
+    for(int i = 0; i < n_parts_; i++){
+        priority_[i].resize(n_embeds_,0);
+    }
 }
 
 void NaiveMerger::update(const std::string &path){
@@ -199,6 +171,9 @@ void NaiveMerger::update(const std::string &path){
         int value = kv.second;
         if(key >= n_embeds_) resize(key + 1);
         partition_[key] = value;
+        if(value >= 0){
+            ++weights_[key][value];
+        }
     }
     for (int i = 0; i < n_parts_; ++i) {
         const auto& pm = pr.priority_maps(i);
@@ -209,14 +184,47 @@ void NaiveMerger::update(const std::string &path){
             int key = kv.first;
             float value = kv.second;
             caches_[i].push_back(key);
+            if(key >= n_embeds_) resize(key + 1);
+            if(value > 0){
+                priority_[i][key] += value;
+            }
         }
     }
 }
 
 PartitionResult NaiveMerger::generatePartition(double hot_rate){
     pr_.partition = partition_;
+
+    // #pragma omp parallel for num_threads(4)
+    // for(int i = 0; i < n_embeds_; i++){
+    //     int part = std::max_element(weights_[i].begin(), weights_[i].end()) - weights_[i].begin();
+    //     int old_part = pr_.partition[i];
+    //     pr_.partition[i] = weights_[i][part] > 0 ? part : -1;
+    // }
+
+
+    if(hot_rate < 1e-6){
+        pr_.caches.resize(n_parts_);
+        return pr_;
+    } 
+    int hot_length = n_embeds_ * hot_rate;
+    pr_.caches.resize(n_parts_);
+    #pragma omp parallel for num_threads(4)
     for(int i = 0; i < n_parts_; i++){
-        pr_.caches[i] = caches_[i]; 
+        vector<std::pair<double,int>> copy;
+        copy.reserve(n_embeds_);
+        for(int j = 0; j < n_embeds_;j++){
+            if(priority_[i][j] <= 0 || pr_.partition[j] == i) continue;
+            copy.emplace_back(-priority_[i][j], j);
+        }
+        std::nth_element(copy.begin(), copy.begin() + hot_length, copy.end());
+        pr_.caches[i].resize(hot_length,-1);
+        for(int j = 0; j < hot_length; j++){
+            pr_.caches[i][j] = copy[j].second;
+        }
     }
+    // for(int i = 0; i < n_parts_; i++){
+    //     pr_.caches[i] = caches_[i]; 
+    // }
     return pr_;
 }
