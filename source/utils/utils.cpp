@@ -22,12 +22,13 @@ void load_data(std::string path, vector<vector<int>> &data){
 	std::cout<<"load time: " << time1 << " copy time: "<< time2 << std::endl;
 }
 
+// now i means bias
 vector<int> getCurrentInput(const vector<vector<int>> &data, int bs, int fs, int i){
     vector<int> currentInput;
     currentInput.reserve(bs * fs);
     for (int j = 0; j < bs; j++)
     { 
-      for(auto & x : data[i*bs + j]) {
+      for(auto & x : data[i + j]) {
         currentInput.push_back(x);
       }
     }
