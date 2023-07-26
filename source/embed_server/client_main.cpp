@@ -9,8 +9,10 @@ using std::vector;
 
 const static std::string CRITEO_PATH = "/home/xuzhizhen/datasets/criteo-tb/";
 constexpr static int sample_factor = 10;
-constexpr static int num_threads = 16;
-constexpr static double hot_rate = 0.001;
+constexpr static int batch_size = 1;
+constexpr static int num_threads = 32;
+constexpr static double hot_rate = 0.0005;
+constexpr static bool is_stat_only = false;
 const static vector<std::string> server_address_list = {"49.52.27.23:50051","49.52.27.25:50051","49.52.27.26:50051","49.52.27.27:50051"};
 
 void simpleTest(){
@@ -41,15 +43,15 @@ void runExperiment(){
             return ;
         }
     }
-    outfile <<"bias p95 avg data node p95 avg data node" << std::endl;
-    Dispatcher dispatcher(4, server_address_list);
-    Dispatcher dispatcher1(4, server_address_list);
+    outfile <<"bias,p95,avg,data,node,p95,avg,data,node" << std::endl;
+    Dispatcher dispatcher(4, server_address_list,is_stat_only);
+    Dispatcher dispatcher1(4, server_address_list,is_stat_only);
     std::cout << "created dispatcher" << std::endl;
     dispatcher.LoadPartitionNPZ(CRITEO_PATH + "partition/window_10/day0_20m.npz",hot_rate);
     dispatcher1.LoadPartitionNPZ(CRITEO_PATH + "partition/window_10/day0_20m.npz",hot_rate);
     vector<vector<int>> data;
     load_data(CRITEO_PATH + "sparse_day_0.npy", data);
-    Merger merger(4);
+    Merger merger(4,1.05);
     // for(int i = 0; i < 10000; i++){
     //     auto currentInput = getCurrentInput(data,1,26,i);
     //     dispatcher.DispatchRequest(currentInput);
@@ -58,25 +60,38 @@ void runExperiment(){
     dispatcher.clearTime();
     dispatcher1.clearTime();
     std::cout << "test start" << std::endl;
-    for(int k = 20; k <= 120; k++){
-        // merger.update(CRITEO_PATH + "partition/new_10/day0_" + std::to_string(k) + "m.bin");
-        // dispatcher.LoadPartitionMerge(merger.generatePartition(hot_rate));
-        dispatcher.LoadPartitionNPZ(CRITEO_PATH + "partition/window_10/day0_"+ std::to_string(k) +"m.npz",hot_rate);
+    // for(int k = 10; k < 20; k++){
+    //     merger.update(CRITEO_PATH + "partition/new_10/day0_" + std::to_string(k) + "m.bin");
+    // }
+    for(int k = 20; k <= 180; k++){
+        merger.update(CRITEO_PATH + "partition/new_window_1/day0_" + std::to_string(k) + "m.bin");
+        dispatcher.LoadPartitionMerge(merger.generatePartition(hot_rate));
+        // dispatcher1.LoadPartitionNPZ(CRITEO_PATH + "partition/window_10/day0_"+ std::to_string(k) +"m.npz",hot_rate);
         // int bias = k * 1000000;
         int bias = k * 1000000;
+        auto start = std::chrono::high_resolution_clock::now();
         #pragma omp parallel for num_threads(num_threads)
-        for(int i = 0; i < 1000000; i+=sample_factor){
-            auto currentInput = getCurrentInput(data, 1, 26, bias + i);
+        for(int i = 0; i < 1000000; i+=sample_factor * batch_size){
+            auto currentInput = getCurrentInput(data, batch_size, 26, bias + i);
             dispatcher1.DispatchRequest(currentInput);
         }
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed_seconds = end - start;
+        double t1 = elapsed_seconds.count();
+        double qps1 = (1000000/sample_factor)/t1;
+        start = std::chrono::high_resolution_clock::now();
         #pragma omp parallel for num_threads(num_threads)
-        for(int i = 0; i < 1000000; i+=sample_factor){
-            auto currentInput = getCurrentInput(data, 1, 26, bias + i);
+        for(int i = 0; i < 1000000; i+=sample_factor * batch_size){
+            auto currentInput = getCurrentInput(data, batch_size, 26, bias + i);
             dispatcher.DispatchRequest(currentInput);
         }
+        end = std::chrono::high_resolution_clock::now();
+        elapsed_seconds = end - start;
+        double t0 = elapsed_seconds.count();
+        double qps0 = (1000000/sample_factor)/t0;
         std::cout << bias;
-        std::cout << " " << dispatcher.getTailTime()<< " " << dispatcher.getAvgTime() << " " << dispatcher.getRemoteCount() << " " << dispatcher.getNodeCount();
-        std::cout << " " << dispatcher1.getTailTime() << " " << dispatcher1.getAvgTime() << " " << dispatcher1.getRemoteCount() << " " << dispatcher1.getNodeCount();
+        std::cout << " " << dispatcher.getTailTime()<< " " << dispatcher.getAvgTime() << " " << dispatcher.getRemoteCount() << " " << dispatcher.getNodeCount() << " " << qps0;
+        std::cout << " " << dispatcher1.getTailTime() << " " << dispatcher1.getAvgTime() << " " << dispatcher1.getRemoteCount() << " " << dispatcher1.getNodeCount() << " " << qps1;
         std::cout << std::endl;
         outfile << bias;
         outfile << "," << dispatcher.getTailTime()<< "," << dispatcher.getAvgTime() << "," << dispatcher.getRemoteCount() << "," << dispatcher.getNodeCount();
