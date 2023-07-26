@@ -23,11 +23,13 @@ protected:
 class Merger : public BaseMerger{
 public:
     Merger() = delete;
-    Merger(int n_parts) : BaseMerger(n_parts) {
-        weights_.resize(1, std::vector<int>(n_parts_));
+    Merger(int n_parts, double decay_factor) : BaseMerger(n_parts), decay_factor_(decay_factor){
+        weights_.resize(1, std::vector<double>(n_parts_));
         priority_.resize(n_parts);
         caches_.resize(n_parts);
     }
+
+    Merger(int n_parts) : Merger(n_parts, 1.0){}
 
     void init(const std::string& path);
 
@@ -43,7 +45,8 @@ public:
     int getLastEmbedChanged(){return last_embed_changed_;}
 private:
     int last_embed_changed_ = 0;
-    std::vector<std::vector<int>> weights_;
+    double decay_factor_;
+    std::vector<std::vector<double>> weights_;
     std::vector<std::vector<double>> priority_;
     std::vector<std::vector<int>> caches_;
 };

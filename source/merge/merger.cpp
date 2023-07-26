@@ -53,7 +53,7 @@ void Merger::init(const std::string& path) {
 void Merger::resize(int n_embeds){
     n_embeds_ = n_embeds;
     pr_.partition.resize(n_embeds_,-1);
-    weights_.resize(n_embeds_, vector<int>(n_parts_));
+    weights_.resize(n_embeds_, vector<double>(n_parts_));
     for(int i = 0; i < n_parts_; i++){
         priority_[i].resize(n_embeds_,0);
     }
@@ -67,12 +67,19 @@ void Merger::update(const std::string &path){
 }
 
 void Merger::addPartition(const PartialResult& pr){
+    #pragma omp parallel for num_threads(16)
+    for(int i = 0; i < n_embeds_; i++){
+        for(int j = 0; j < n_parts_; j++){
+            weights_[i][j] *= decay_factor_;
+        }
+    }
     for(const auto &kv : pr.partition_map()){
         int key = kv.first;
         int value = kv.second;
         if(key >= n_embeds_) resize(key + 1);
         if(value >= 0){
-            ++weights_[key][value];
+            // weights_[key][value] *= decay_factor_;
+            weights_[key][value] += 1.0;
         }
     }
     for (int i = 0; i < n_parts_; ++i) {
@@ -96,7 +103,7 @@ void Merger::addPartition(const vector<int>& new_partition, \
     }
     for(int i = 0; i < n_embeds_; i++){
         if(new_partition[i] >= 0){
-            ++weights_[i][new_partition[i]];
+            weights_[i][new_partition[i]] += 1.0;
         }
     }
     for(int i = 0; i < n_parts_; i++){
