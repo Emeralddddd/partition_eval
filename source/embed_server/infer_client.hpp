@@ -10,7 +10,7 @@
 
 class Dispatcher{
 public:
-    Dispatcher(int n_parts, std::vector<std::string> ServerAddressList) : n_parts_(n_parts){
+    Dispatcher(int n_parts, std::vector<std::string> ServerAddressList, bool stats_only) : n_parts_(n_parts), stats_only_(stats_only){
         assert(ServerAddressList.size() == n_parts_);
         caches_.resize(n_parts_);
         remote_time_vecs.resize(n_parts_,std::vector<std::vector<int>>(n_parts_));
@@ -21,6 +21,7 @@ public:
             stub_list_.emplace_back(InferenceServer::NewStub(channel));
         }
     }
+    Dispatcher(int n_parts, std::vector<std::string> ServerAddressList):Dispatcher(n_parts,ServerAddressList,false){}
     void resize(int n_embeds){
         n_embeds_ = n_embeds;
         partition_.resize(n_embeds_, -1);
@@ -65,6 +66,7 @@ public:
 
 private:
     int n_embeds_, n_parts_ = 0, remoteCnt_ = 0, nodeCnt_ = 0;
+    bool stats_only_;
     std::vector<int> partition_;
     std::vector<std::unordered_set<int>> caches_;
     std::vector<std::unique_ptr<InferenceServer::Stub>> stub_list_;
