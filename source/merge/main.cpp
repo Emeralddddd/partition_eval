@@ -11,21 +11,26 @@ using std::string;
 
 const static std::string CRITEO_PATH = "/home/xuzhizhen/datasets/criteo-tb/";
 
-auto main(int argc, char* argv[]) -> int{
+void diff(){
     Merger merger(4);
-    for(int i = 1;i <= 80; i++){
-        auto start = std::chrono::high_resolution_clock::now();
-        merger.update(CRITEO_PATH + "partition/new_5/day0_" + std::to_string(i) + "m.bin");
-        auto end = std::chrono::high_resolution_clock::now();
-        merger.generatePartition(0.001);
-        auto end2 = std::chrono::high_resolution_clock::now();
-        auto time = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-        auto time2 = std::chrono::duration_cast<std::chrono::milliseconds>(end2 - end).count();
-        std::cout << i <<"th Add time: " << time << std::endl;
-        std::cout << i <<"th Gen time: " << time2 << std::endl;
-        std::cout << merger.getLastEmbedChanged() << std::endl;
+    PartitionResult p1, p2;
+    merger.update(CRITEO_PATH + "partition/new_window_1/day0_20m.bin");
+    p1 = merger.generatePartition(0.001);
+    for(int k = 21; k <= 180; k++){
+        merger.update(CRITEO_PATH + "partition/new_window_1/day0_" + std::to_string(k) + "m.bin");
+        p2 = merger.generatePartition(0.001);
+        int n = p1.partition.size();
+        int m = p2.partition.size();
+        int count = 0;
+        for(int i = 0; i < n; i++){
+            if(p1.partition[i] != p2.partition[i]) count++;
+        }
+        std::cout << k << " " << count << std::endl;
+        p1 = std::move(p2);
     }
-    auto result = merger.generatePartition(0.001);
-    merger.savePartitionToNpz(CRITEO_PATH + "partition/merged/day0_80m.npz");
+}
+
+auto main(int argc, char* argv[]) -> int{
+    diff();
     return 0; 
 }
