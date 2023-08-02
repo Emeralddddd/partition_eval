@@ -82,6 +82,7 @@ void Merger::addPartition(const PartialResult& pr){
             weights_[key][value] += 1.0;
         }
     }
+    #pragma omp parallel for num_threads(4)
     for (int i = 0; i < n_parts_; ++i) {
         const auto& pm = pr.priority_maps(i);
         for (const auto& kv : pm.map_field()) {

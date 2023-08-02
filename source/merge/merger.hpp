@@ -16,7 +16,7 @@ public:
     virtual PartitionResult generatePartition(double hot_rate) = 0;
 protected:
     int n_parts_;
-    int n_embeds_;
+    int n_embeds_ = 0;
     PartitionResult pr_;
 };
 
@@ -24,7 +24,7 @@ class Merger : public BaseMerger{
 public:
     Merger() = delete;
     Merger(int n_parts, double decay_factor) : BaseMerger(n_parts), decay_factor_(decay_factor){
-        weights_.resize(1, std::vector<double>(n_parts_));
+        // weights_.resize(1, std::vector<double>(n_parts_));
         priority_.resize(n_parts);
         caches_.resize(n_parts);
     }
